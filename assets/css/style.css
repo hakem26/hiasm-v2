@@ -1,0 +1,68 @@
+/* assets/css/style.css */
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('../fonts/Vazirmatn-RD-FD-NL-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('../fonts/Vazirmatn-RD-FD-NL-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('../fonts/Vazirmatn-RD-FD-NL-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('../fonts/Vazirmatn-RD-FD-NL-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+}
+
+/* اعمال فونت به همه چیز */
+* {
+    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+}
+
+body {
+    font-family: 'Vazirmatn', Tahoma, sans-serif;
+    direction: rtl;
+    text-align: right;
+}
+
+h1, h2, h3, h4, h5, h6, .nav-link, .btn, .table th, .table td {
+    font-family: 'Vazirmatn', Tahoma, sans-serif;
+}
+
+/* استایل‌های عمومی */
+.main-content {
+    margin-right: 270px;
+    padding: 20px;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 250px;
+    background: #f8f9fa;
+    border-left: 1px solid #dee2e6;
+    overflow-y: auto;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
+
+.form-control, .btn {
+    font-family: 'Vazirmatn', Tahoma, sans-serif;
+}
