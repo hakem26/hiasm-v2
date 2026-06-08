@@ -1,0 +1,91 @@
+/* HIASM v2 — Custom Styles */
+
+/* ── فونت فارسی ─────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('../vendor/fonts/Vazirmatn-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('../vendor/fonts/Vazirmatn-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* ── تنظیمات پایه RTL ───────────────────────────────────────── */
+:root {
+  --font-fa: 'Vazirmatn', Tahoma, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-fa) !important;
+  direction: rtl;
+  text-align: right;
+}
+
+/* ── اعداد — همیشه LTR ──────────────────────────────────────── */
+.num, .price, .ltr {
+  direction: ltr;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── جداول Tabulator RTL ────────────────────────────────────── */
+.tabulator {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-fa) !important;
+}
+.tabulator .tabulator-header .tabulator-col {
+  text-align: right;
+}
+.tabulator-row .tabulator-cell {
+  text-align: right;
+}
+
+/* ── دارک تم — اصلاح رنگ‌های Tabulator ─────────────────────── */
+[data-bs-theme="dark"] .tabulator {
+  background-color: var(--tblr-bg-surface);
+  border-color: var(--tblr-border-color);
+  color: var(--tblr-body-color);
+}
+[data-bs-theme="dark"] .tabulator-header {
+  background-color: var(--tblr-bg-surface-secondary);
+  border-color: var(--tblr-border-color);
+  color: var(--tblr-body-color);
+}
+[data-bs-theme="dark"] .tabulator-row:hover {
+  background-color: var(--tblr-active-bg);
+}
+
+/* ── JalaliDatePicker RTL ───────────────────────────────────── */
+.datepicker-plot-area {
+  direction: rtl;
+  font-family: var(--font-fa) !important;
+}
+
+/* ── کارت‌های داشبورد ───────────────────────────────────────── */
+.stat-card {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+
+/* ── badge نقش‌ها ───────────────────────────────────────────── */
+.role-admin  { --tblr-badge-color: var(--tblr-danger); }
+.role-leader { --tblr-badge-color: var(--tblr-warning); }
+.role-seller { --tblr-badge-color: var(--tblr-info); }
+
+/* ── print ──────────────────────────────────────────────────── */
+@media print {
+  .navbar, .navbar-vertical, footer, .btn, .no-print {
+    display: none !important;
+  }
+  body { background: white !important; }
+  .page-wrapper { padding: 0 !important; }
+  .page-body { padding: 0 !important; }
+}
