@@ -42,7 +42,7 @@ var CURRENT_UID = <?= (int)$currentUid ?>;
 var roleMap = {
   admin:  ['مدیر سیستم', 'danger'],
   leader: ['سرگروه',     'warning'],
-  seller: ['زیرگروه',    'info']
+  seller: ['فروشنده',    'info']
 };
 
 // 🔄 فعال / غیرفعال
