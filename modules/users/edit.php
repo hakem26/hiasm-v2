@@ -13,28 +13,25 @@ if (!$user) {
     redirect(BASE_URL . '/modules/users/list.php');
 }
 
-// جلوگیری از ویرایش خود ادمین اصلی توسط دیگران
-if ($user['role_key'] === 'admin' && currentUserId() !== $id && !hasRole(ROLE_ADMIN)) {
-    forbidden();
-}
-
 $roles  = $userQuery->getRoles();
 $errors = [];
-$old    = $user; // پیش‌فرض مقادیر فعلی
+$old    = $user;
 
 if (isPost()) {
     $v = new Validator($_POST);
-    $v->required('full_name', 'username', 'role_id')
+    $v->required('full_name', 'username')
       ->minLength('username', 3)
       ->maxLength('full_name', 100)
       ->phone('phone');
 
-    // اگه رمز وارد شده validate کن
     if (!empty($_POST['password'])) {
         $v->minLength('password', 6);
     }
 
-    $old = $v->all();
+    $old = array_merge($user, $v->all());
+
+    // role_id را از POST بگیر، اگه نبود (disabled) از DB بگیر
+    $roleId = !empty($_POST['role_id']) ? (int)$_POST['role_id'] : (int)$user['role_id'];
 
     if ($v->passes()) {
         if ($userQuery->usernameExists($v->get('username'), $id)) {
@@ -44,9 +41,8 @@ if (isPost()) {
                 'username'  => $v->get('username'),
                 'full_name' => $v->get('full_name'),
                 'phone'     => $v->get('phone') ?: null,
-                'role_id'   => (int)$v->get('role_id'),
+                'role_id'   => $roleId,
             ];
-            // رمز فقط اگه وارد شده تغییر بده
             if (!empty($v->get('password'))) {
                 $data['password'] = hashPassword($v->get('password'));
             }
@@ -58,6 +54,12 @@ if (isPost()) {
         $errors = $v->errors();
     }
 }
+
+// نقش‌هایی که ادمین می‌تونه انتخاب کنه — فقط admin و seller
+// leader/seller بودن در روز کاری انتخاب می‌شه نه اینجا
+$allowedRoles = array_filter($roles, fn($r) => in_array($r['role_key'], ['admin', 'seller']));
+
+$isSelf = ($id === currentUserId());
 
 $pageTitle = 'ویرایش کاربر';
 require_once BASE_PATH . '/includes/header.php';
@@ -84,6 +86,7 @@ require_once BASE_PATH . '/includes/header.php';
       <div class="card-body">
         <form method="POST" autocomplete="off">
 
+          <!-- نام کامل -->
           <div class="mb-3">
             <label class="form-label required">نام کامل</label>
             <input type="text" name="full_name"
@@ -94,6 +97,7 @@ require_once BASE_PATH . '/includes/header.php';
             <?php endif; ?>
           </div>
 
+          <!-- نام کاربری -->
           <div class="mb-3">
             <label class="form-label required">نام کاربری</label>
             <input type="text" name="username"
@@ -104,6 +108,7 @@ require_once BASE_PATH . '/includes/header.php';
             <?php endif; ?>
           </div>
 
+          <!-- رمز عبور -->
           <div class="mb-3">
             <label class="form-label">
               رمز عبور جدید
@@ -122,33 +127,40 @@ require_once BASE_PATH . '/includes/header.php';
             <?php endif; ?>
           </div>
 
+          <!-- موبایل -->
           <div class="mb-3">
             <label class="form-label">شماره موبایل</label>
             <input type="text" name="phone"
                    class="form-control <?= isset($errors['phone']) ? 'is-invalid' : '' ?>"
-                   value="<?= e($old['phone'] ?? '') ?>" placeholder="09xxxxxxxxx">
+                   value="<?= e($old['phone'] ?? '') ?>"
+                   placeholder="09xxxxxxxxx">
             <?php if (isset($errors['phone'])): ?>
               <div class="invalid-feedback"><?= e($errors['phone']) ?></div>
             <?php endif; ?>
           </div>
 
+          <!-- نقش — فقط admin و seller قابل انتخاب -->
           <div class="mb-4">
             <label class="form-label required">نقش</label>
-            <select name="role_id"
-                    class="form-select <?= isset($errors['role_id']) ? 'is-invalid' : '' ?>"
-                    <?= ($user['user_id'] === currentUserId()) ? 'disabled' : '' ?> required>
-              <?php foreach ($roles as $role): ?>
-                <option value="<?= $role['role_id'] ?>"
-                  <?= ($old['role_id'] ?? $user['role_id']) == $role['role_id'] ? 'selected' : '' ?>>
-                  <?= e($role['role_label']) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-            <?php if ($user['user_id'] === currentUserId()): ?>
-              <!-- اگه select disable شده مقدارش ارسال نمی‌شه -->
-              <input type="hidden" name="role_id" value="<?= $user['role_id'] ?>">
+            <?php if ($isSelf): ?>
+              <!-- ادمین نمی‌تونه نقش خودشو عوض کنه -->
+              <input type="hidden" name="role_id" value="<?= (int)$user['role_id'] ?>">
+              <input type="text" class="form-control" value="<?= e($user['role_label']) ?>" disabled>
               <div class="form-text text-warning">
-                <i class="ti ti-info-circle me-1"></i>نقش خودتان را نمی‌توانید تغییر دهید
+                <i class="ti ti-info-circle me-1"></i>نقش حساب خودتان قابل تغییر نیست
+              </div>
+            <?php else: ?>
+              <select name="role_id" class="form-select" required>
+                <?php foreach ($allowedRoles as $role): ?>
+                  <option value="<?= $role['role_id'] ?>"
+                    <?= ($old['role_id'] ?? $user['role_id']) == $role['role_id'] ? 'selected' : '' ?>>
+                    <?= e($role['role_label']) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+              <div class="form-text">
+                <i class="ti ti-info-circle me-1"></i>
+                نقش سرگروه / زیرگروه در هر روز کاری مشخص می‌شود
               </div>
             <?php endif; ?>
           </div>
@@ -157,7 +169,9 @@ require_once BASE_PATH . '/includes/header.php';
             <button type="submit" class="btn btn-primary flex-fill">
               <i class="ti ti-device-floppy me-1"></i>بروزرسانی
             </button>
-            <a href="list.php" class="btn btn-ghost-secondary">انصراف</a>
+            <a href="<?= BASE_URL ?>/modules/users/list.php" class="btn btn-ghost-secondary">
+              انصراف
+            </a>
           </div>
 
         </form>
@@ -166,14 +180,17 @@ require_once BASE_PATH . '/includes/header.php';
   </div>
 </div>
 
-<?php
-$inlineJs = <<<JS
-document.getElementById('toggle-pass').addEventListener('click', function () {
-  const inp  = document.getElementById('pass-input');
-  const icon = document.getElementById('eye-icon');
-  inp.type   = inp.type === 'password' ? 'text' : 'password';
-  icon.className = inp.type === 'password' ? 'ti ti-eye' : 'ti ti-eye-off';
+<?php require_once BASE_PATH . '/includes/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var btn  = document.getElementById('toggle-pass');
+  var inp  = document.getElementById('pass-input');
+  var icon = document.getElementById('eye-icon');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      inp.type   = inp.type === 'password' ? 'text' : 'password';
+      icon.className = inp.type === 'password' ? 'ti ti-eye' : 'ti ti-eye-off';
+    });
+  }
 });
-JS;
-require_once BASE_PATH . '/includes/footer.php';
-?>
+</script>

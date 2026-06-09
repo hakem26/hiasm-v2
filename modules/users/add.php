@@ -5,7 +5,8 @@ requireLogin('users.manage');
 
 require_once BASE_PATH . '/core/queries/users.php';
 $userQuery = new UserQuery();
-$roles     = $userQuery->getRoles();
+$allRoles  = $userQuery->getRoles();
+$roles     = array_filter($allRoles, fn($r) => in_array($r['role_key'], ['admin', 'seller']));
 
 $errors = [];
 $old    = [];

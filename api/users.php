@@ -17,39 +17,31 @@ match ($action) {
     default  => Response::error('عملیات نامعتبر است')
 };
 
-// ── لیست کاربران ─────────────────────────────────────────────
 function actionList(): never {
     global $userQuery;
     $users = $userQuery->getAllWithRole();
-    // تبدیل تاریخ به شمسی
     foreach ($users as &$u) {
         $u['created_at_jalali'] = toJalali($u['created_at']);
-        unset($u['password']); // هیچ‌وقت هش رمز رو نفرست
+        unset($u['password']);
     }
     Response::success('', $users);
 }
 
-// ── تغییر وضعیت فعال/غیرفعال ─────────────────────────────────
 function actionToggle(): never {
     global $userQuery;
     $id = (int)post('id');
 
     if ($id <= 0) Response::error('شناسه نامعتبر است');
-
-    // جلوگیری از غیرفعال کردن خودمون
-    if ($id === currentUserId()) {
-        Response::error('نمی‌توانید حساب خودتان را غیرفعال کنید');
-    }
+    if ($id === currentUserId()) Response::error('نمی‌توانید وضعیت حساب خودتان را تغییر دهید');
 
     $user = $userQuery->findById($id);
     if (!$user) Response::notFound('کاربر یافت نشد');
 
     $userQuery->toggleActive($id);
-    $status = $user['is_active'] ? 'غیرفعال' : 'فعال';
-    Response::success("کاربر {$status} شد");
+    $newStatus = $user['is_active'] ? 'غیرفعال' : 'فعال';
+    Response::success("کاربر {$newStatus} شد");
 }
 
-// ── حذف کاربر ────────────────────────────────────────────────
 function actionDelete(): never {
     global $userQuery;
     $id = (int)post('id');
@@ -60,7 +52,7 @@ function actionDelete(): never {
     $user = $userQuery->findById($id);
     if (!$user) Response::notFound('کاربر یافت نشد');
 
-    // به جای حذف واقعی، غیرفعال کن (حفظ تاریخچه)
+    // همیشه soft delete — تاریخچه حفظ می‌شه
     $userQuery->update($id, ['is_active' => 0]);
-    Response::success('کاربر با موفقیت حذف شد');
+    Response::success('کاربر غیرفعال شد');
 }
