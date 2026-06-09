@@ -22,7 +22,7 @@ $vendor = BASE_URL . '/assets/vendor';
     <title><?= e($pageTitle) ?> — <?= APP_NAME ?></title>
 
     <!-- Tabler RTL -->
-    <link rel="stylesheet" href="<?= $vendor ?>/tabler/css/tabler-rtl.min.css" />
+    <link rel="stylesheet" href="<?= $vendor ?>/tabler/css/tabler.rtl.min.css" />
     <!-- Tabler Icons -->
     <link rel="stylesheet" href="<?= $vendor ?>/tabler-icons/tabler-icons.min.css" />
     <!-- Tabulator -->
