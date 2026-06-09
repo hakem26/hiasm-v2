@@ -8,7 +8,7 @@ Response::requireAuth('users.manage');
 require_once BASE_PATH . '/core/queries/users.php';
 $userQuery = new UserQuery();
 
-$action = post('action');
+$action = post('action') ?: get('action');
 
 match ($action) {
     'list'   => actionList(),
