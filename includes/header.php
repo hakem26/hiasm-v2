@@ -37,6 +37,15 @@ $vendor = BASE_URL . '/assets/vendor';
             <link rel="stylesheet" href="<?= e($css) ?>" />
         <?php endforeach; ?>
     <?php endif; ?>
+    <script src="<?= $vendor ?>/tabler/js/tabler.min.js" defer></script>
+    <!-- Tabulator -->
+    <script src="<?= $vendor ?>/tabulator/tabulator.min.js" defer></script>
+    <!-- ApexCharts -->
+    <script src="<?= $vendor ?>/apexcharts/apexcharts.min.js" defer></script>
+    <!-- JalaliDatePicker -->
+    <script src="<?= $vendor ?>/jalali-datepicker/JalaliDatePicker.min.js" defer></script>
+    <!-- JS سفارشی -->
+    <script src="<?= BASE_URL ?>/assets/js/app.js" defer></script>
 </head>
 
 <body class="antialiased">
