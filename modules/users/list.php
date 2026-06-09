@@ -3,10 +3,10 @@ define('HIASM_ENTRY', true);
 require_once __DIR__ . '/../../core/init.php';
 requireLogin('users.manage');
 
-$pageTitle   = 'مدیریت کاربران';
-$apiUrl      = BASE_URL . '/api/users.php';
-$editUrl     = BASE_URL . '/modules/users/edit.php';
-$currentUid  = currentUserId();
+$pageTitle  = 'مدیریت کاربران';
+$apiUrl     = BASE_URL . '/api/users.php';
+$editUrl    = BASE_URL . '/modules/users/edit.php';
+$currentUid = currentUserId();
 
 require_once BASE_PATH . '/includes/header.php';
 ?>
@@ -45,7 +45,7 @@ var roleMap = {
   seller: ['زیرگروه',    'info']
 };
 
-// ── توابع عملیات — باید قبل از Tabulator تعریف بشن ──────────
+// 🔄 فعال / غیرفعال
 function toggleUser(id) {
   hiasm.post(API_URL, { action: 'toggle', id: id }).then(function(res) {
     hiasm.toast(res.message, res.success ? 'success' : 'error');
@@ -53,15 +53,15 @@ function toggleUser(id) {
   });
 }
 
-function deleteUser(id) {
-  if (!hiasm.confirm('این کاربر غیرفعال شود؟')) return;
+// 🗑️ حذف واقعی از دیتابیس
+function deleteUser(id, name) {
+  if (!hiasm.confirm('کاربر «' + name + '» برای همیشه حذف شود؟\nاگر سابقه دارد پیشنهاد می‌شود غیرفعال کنید.')) return;
   hiasm.post(API_URL, { action: 'delete', id: id }).then(function(res) {
     hiasm.toast(res.message, res.success ? 'success' : 'error');
     if (res.success) window._usersTable && window._usersTable.replaceData();
   });
 }
 
-// ── ساخت جدول بعد از لود کامل ────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
 
   window._usersTable = new Tabulator('#users-table', Object.assign({}, tabulatorDefaults, {
@@ -92,26 +92,29 @@ document.addEventListener('DOMContentLoaded', function() {
       { title: 'عملیات', field: 'user_id', widthGrow: 1, hozAlign: 'center',
         headerSort: false,
         formatter: function(cell) {
-          var id      = cell.getValue();
-          var isSelf  = (id === CURRENT_UID);
-          var html    = '';
+          var id     = cell.getValue();
+          var name   = cell.getRow().getData().full_name;
+          var active = cell.getRow().getData().is_active;
+          var isSelf = (id === CURRENT_UID);
+          var html   = '';
 
-          // ویرایش — همیشه
+          // ✏️ ویرایش — همیشه
           html += '<a href="' + EDIT_URL + '?id=' + id + '" '
                +  'class="btn btn-sm btn-icon btn-ghost-primary" title="ویرایش">'
                +  '<i class="ti ti-edit"></i></a> ';
 
-          // toggle وضعیت — غیر از خودم
           if (!isSelf) {
+            // 🔄 فعال/غیرفعال
+            var toggleTitle  = active == 1 ? 'غیرفعال کردن' : 'فعال کردن';
+            var toggleClass  = active == 1 ? 'btn-ghost-warning' : 'btn-ghost-success';
+            var toggleIcon   = active == 1 ? 'ti-toggle-left' : 'ti-toggle-right';
             html += '<button onclick="toggleUser(' + id + ')" '
-                 +  'class="btn btn-sm btn-icon btn-ghost-warning" title="فعال/غیرفعال">'
-                 +  '<i class="ti ti-refresh"></i></button> ';
-          }
+                 +  'class="btn btn-sm btn-icon ' + toggleClass + '" title="' + toggleTitle + '">'
+                 +  '<i class="ti ' + toggleIcon + '"></i></button> ';
 
-          // حذف (غیرفعال) — غیر از خودم
-          if (!isSelf) {
-            html += '<button onclick="deleteUser(' + id + ')" '
-                 +  'class="btn btn-sm btn-icon btn-ghost-danger" title="غیرفعال کردن">'
+            // 🗑️ حذف واقعی
+            html += '<button onclick="deleteUser(' + id + ', \'' + name.replace(/'/g, "\\'") + '\')" '
+                 +  'class="btn btn-sm btn-icon btn-ghost-danger" title="حذف از سیستم">'
                  +  '<i class="ti ti-trash"></i></button>';
           }
 
