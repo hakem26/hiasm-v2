@@ -31,7 +31,7 @@ $vendor = BASE_URL . '/assets/vendor';
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ورود — <?= APP_NAME ?></title>
-  <link rel="stylesheet" href="<?= $vendor ?>/tabler/css/tabler-rtl.min.css"/>
+  <link rel="stylesheet" href="<?= $vendor ?>/tabler/css/tabler.rtl.min.css"/>
   <link rel="stylesheet" href="<?= $vendor ?>/tabler-icons/tabler-icons.min.css"/>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css"/>
   <style>
