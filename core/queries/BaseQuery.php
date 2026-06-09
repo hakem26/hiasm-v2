@@ -105,7 +105,7 @@ abstract class BaseQuery {
     }
 
     // ── کوئری خام برای موارد پیچیده ──────────────────────────
-    protected function raw(string $sql, array $params = []): \PDOStatement {
+    public function raw(string $sql, array $params = []): \PDOStatement {
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt;

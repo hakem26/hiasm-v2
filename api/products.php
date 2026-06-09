@@ -2,7 +2,6 @@
 define('HIASM_ENTRY', true);
 require_once __DIR__ . '/../core/init.php';
 
-Response::requireAjax();
 Response::requireAuth('products.view');
 
 require_once BASE_PATH . '/core/queries/products.php';
@@ -14,7 +13,7 @@ match ($action) {
     'list'   => actionList(),
     'toggle' => actionToggle(),
     'delete' => actionDelete(),
-    'select' => actionSelect(),  // برای dropdown در سفارش‌ها
+    'select' => actionSelect(),
     default  => Response::error('عملیات نامعتبر است')
 };
 
@@ -38,6 +37,7 @@ function actionList(): never {
 function actionToggle(): never {
     global $productQuery;
     Response::requireAuth('products.edit');
+    Response::requirePost();
     $id = (int)post('id');
     if ($id <= 0) Response::error('شناسه نامعتبر است');
 
@@ -52,13 +52,13 @@ function actionToggle(): never {
 function actionDelete(): never {
     global $productQuery;
     Response::requireAuth('products.delete');
+    Response::requirePost();
     $id = (int)post('id');
     if ($id <= 0) Response::error('شناسه نامعتبر است');
 
     $product = $productQuery->findById($id);
     if (!$product) Response::notFound('محصول یافت نشد');
 
-    // بررسی وابستگی
     $db = getDB();
     $used = $db->prepare("SELECT COUNT(*) FROM order_items WHERE product_id = ?");
     $used->execute([$id]);

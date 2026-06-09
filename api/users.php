@@ -2,7 +2,6 @@
 define('HIASM_ENTRY', true);
 require_once __DIR__ . '/../core/init.php';
 
-Response::requireAjax();
 Response::requireAuth('users.manage');
 
 require_once BASE_PATH . '/core/queries/users.php';
@@ -29,6 +28,7 @@ function actionList(): never {
 
 function actionToggle(): never {
     global $userQuery;
+    Response::requirePost();
     $id = (int)post('id');
     if ($id <= 0) Response::error('شناسه نامعتبر است');
     if ($id === currentUserId()) Response::error('نمی‌توانید وضعیت حساب خودتان را تغییر دهید');
@@ -43,6 +43,7 @@ function actionToggle(): never {
 
 function actionDelete(): never {
     global $userQuery;
+    Response::requirePost();
     $id = (int)post('id');
     if ($id <= 0) Response::error('شناسه نامعتبر است');
     if ($id === currentUserId()) Response::error('نمی‌توانید حساب خودتان را حذف کنید');
@@ -50,22 +51,20 @@ function actionDelete(): never {
     $user = $userQuery->findById($id);
     if (!$user) Response::notFound('کاربر یافت نشد');
 
-    // بررسی وابستگی — اگه سفارش یا تراکنش داره حذف نشه
     $db = getDB();
 
     $hasOrders = $db->prepare("SELECT COUNT(*) FROM orders WHERE seller_id = ?");
     $hasOrders->execute([$id]);
     if ($hasOrders->fetchColumn() > 0) {
-        Response::error('این کاربر سفارش ثبت‌شده دارد و قابل حذف نیست — می‌توانید غیرفعالش کنید');
+        Response::error('این کاربر سفارش دارد و قابل حذف نیست — غیرفعالش کنید');
     }
 
     $hasTxn = $db->prepare("SELECT COUNT(*) FROM inventory_transactions WHERE from_owner_id = ? OR to_owner_id = ?");
     $hasTxn->execute([$id, $id]);
     if ($hasTxn->fetchColumn() > 0) {
-        Response::error('این کاربر تراکنش انبار دارد و قابل حذف نیست — می‌توانید غیرفعالش کنید');
+        Response::error('این کاربر تراکنش انبار دارد و قابل حذف نیست — غیرفعالش کنید');
     }
 
-    // حذف واقعی
     $userQuery->delete($id);
     Response::success('کاربر با موفقیت حذف شد');
 }
