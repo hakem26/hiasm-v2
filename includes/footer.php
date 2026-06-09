@@ -24,6 +24,17 @@
 
 <?php $vendor = BASE_URL . '/assets/vendor'; ?>
 
+<!-- Tabler JS -->
+<script src="<?= $vendor ?>/tabler/js/tabler.min.js"></script>
+<!-- Tabulator -->
+<script src="<?= $vendor ?>/tabulator/tabulator.min.js"></script>
+<!-- ApexCharts -->
+<script src="<?= $vendor ?>/apexcharts/apexcharts.min.js"></script>
+<!-- JalaliDatePicker -->
+<script src="<?= $vendor ?>/jalali-datepicker/JalaliDatePicker.min.js"></script>
+<!-- JS سفارشی -->
+<script src="<?= BASE_URL ?>/assets/js/app.js"></script>
+
 <?php if (!empty($extraJs)): ?>
   <?php foreach ($extraJs as $js): ?>
     <script src="<?= e($js) ?>"></script>
