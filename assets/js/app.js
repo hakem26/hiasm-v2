@@ -1,3 +1,7 @@
+/**
+ * HIASM v2 — app.js
+ * تنظیمات و توابع کمکی فرانت‌اند
+ */
 
 // ── دارک تم ──────────────────────────────────────────────────
 (function () {
@@ -21,16 +25,18 @@
   });
 })();
 
-// ── JalaliDatePicker — تنظیم پیش‌فرض ─────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // همه input هایی که data-jdp دارند را فعال کن
-  document.querySelectorAll('input[data-jdp]').forEach(el => {
+// ── JalaliDatePicker — فقط یک بار startWatch برای کل سایت ──
+// روش درست: data-jdp به input اضافه کن، startWatch بدون آرگومان
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof jalaliDatepicker !== 'undefined') {
     jalaliDatepicker.startWatch({
-      minDate: false,
-      maxDate: false,
-      ...el.dataset,
+      time: false,
+      date: true,
+      autoHide: true,
+      showTodayBtn: true,
+      showEmptyBtn: true,
     });
-  });
+  }
 });
 
 // ── AJAX helper ───────────────────────────────────────────────

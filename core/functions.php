@@ -52,45 +52,44 @@ function jalaliDayName(string $date): string {
 }
 
 // ── تبدیل تاریخ شمسی به میلادی ──────────────────────────────
-// از الگوریتم مستقیم استفاده می‌کنه — بدون نیاز به jdf
 function fromJalali(string $jalaliDate): string {
-    $jalaliDate = str_replace('-', '/', toEnglishDigits($jalaliDate));
+    $jalaliDate = str_replace('-', '/', toEnglishDigits(trim($jalaliDate)));
     $parts = explode('/', $jalaliDate);
     if (count($parts) !== 3) return date('Y-m-d');
 
-    $jy = (int)$parts[0];
-    $jm = (int)$parts[1];
-    $jd = (int)$parts[2];
+    $jy = (int)$parts[0] - 979;
+    $jm = (int)$parts[1] - 1;
+    $jd = (int)$parts[2] - 1;
 
-    // الگوریتم تبدیل جلالی به گریگوری
-    $jy += 1595;
-    $days = -355779 + 365 * $jy + (int)(($jy / 4)) + (int)((($jy + 31) / 128))
-          - (int)(($jy / 100)) + (int)(($jy / 400))
-          + (int)((($jy % 128) + 29) / 128) * 29
-          + (int)((11 * ($jm - 1) + 6) / 33) * 30
-          + ($jm <= 6 ? ($jm - 1) * 31 : ($jm - 7) * 30 + 186)
-          + $jd;
+    $j_day_no = 365 * $jy + (int)($jy / 33) * 8 + (int)(($jy % 33 + 3) / 4);
+    $j_months = [31,31,31,31,31,31,30,30,30,30,30,29];
+    for ($i = 0; $i < $jm; $i++) $j_day_no += $j_months[$i];
+    $j_day_no += $jd;
 
-    $gy  = 400 * (int)($days / 146097);
-    $days = $days % 146097;
-    if ($days > 36524) {
-        $gy += 100 * (int)(--$days / 36524);
-        $days = $days % 36524;
-        if ($days >= 365) $days++;
+    $g_day_no = $j_day_no + 79;
+    $gy  = 1600 + 400 * (int)($g_day_no / 146097);
+    $g_day_no %= 146097;
+    $leap = true;
+    if ($g_day_no >= 36525) {
+        $g_day_no--;
+        $gy += 100 * (int)($g_day_no / 36524);
+        $g_day_no %= 36524;
+        if ($g_day_no >= 365) $g_day_no++;
+        else $leap = false;
     }
-    $gy  += 4 * (int)($days / 1461);
-    $days = $days % 1461;
-    if ($days > 365) {
-        $gy  += (int)(($days - 1) / 365);
-        $days = ($days - 1) % 365;
+    $gy += 4 * (int)($g_day_no / 1461);
+    $g_day_no %= 1461;
+    if ($g_day_no >= 366) {
+        $leap = false;
+        $g_day_no--;
+        $gy += (int)($g_day_no / 365);
+        $g_day_no %= 365;
     }
-    $gd = $days + 1;
-    $sal_a = [0, 31, ($gy % 4 == 0 && ($gy % 100 != 0 || $gy % 400 == 0)) ? 29 : 28,
-              31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    $gm = 0;
-    for ($i = 1; $i <= 12; $i++) {
-        if ($gd <= $sal_a[$i]) { $gm = $i; break; }
-        $gd -= $sal_a[$i];
+    $g_days = [31, $leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    $gm = 0; $gd = 0;
+    for ($i = 0; $i < 12; $i++) {
+        if ($g_day_no < $g_days[$i]) { $gm = $i + 1; $gd = $g_day_no + 1; break; }
+        $g_day_no -= $g_days[$i];
     }
     return sprintf('%04d-%02d-%02d', $gy, $gm, $gd);
 }
