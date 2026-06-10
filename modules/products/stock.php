@@ -41,7 +41,7 @@ require_once BASE_PATH . '/includes/header.php';
           <input type="text" name="date" id="stock-date"
                  class="form-control"
                  value="<?= e($dateJalali) ?>"
-                 autocomplete="off" readonly>
+                 autocomplete="off">
         </div>
         <div class="form-text">موجودی در پایان این تاریخ</div>
       </div>

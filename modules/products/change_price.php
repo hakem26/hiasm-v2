@@ -102,7 +102,7 @@ require_once BASE_PATH . '/includes/header.php';
                    class="form-control <?= isset($errors['price_start_date']) ? 'is-invalid' : '' ?>"
                    value="<?= e($old['price_start_date'] ?? $todayJalali) ?>"
                    placeholder="مثال: ۱۴۰۴/۰۱/۰۱"
-                   autocomplete="off" readonly>
+                   autocomplete="off">
             <?php if (isset($errors['price_start_date'])): ?>
               <div class="invalid-feedback"><?= e($errors['price_start_date']) ?></div>
             <?php endif; ?>
