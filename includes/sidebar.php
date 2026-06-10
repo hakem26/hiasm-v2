@@ -55,12 +55,29 @@ function isActive(string $path): string {
 
         <?php if (hasPermission('products.view')): ?>
         <!-- ── محصولات ──────────────────────────────────── -->
-        <li class="nav-item">
-          <a class="nav-link <?= isActive('/modules/products') ?>"
-             href="<?= BASE_URL ?>/modules/products/list.php">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <?= isActive('/modules/products') ?>"
+             href="#products-menu" data-bs-toggle="dropdown">
             <span class="nav-link-icon"><i class="ti ti-bottle"></i></span>
             <span class="nav-link-title">محصولات</span>
           </a>
+          <ul class="dropdown-menu">
+            <li>
+              <a class="dropdown-item" href="<?= BASE_URL ?>/modules/products/list.php">
+                <i class="ti ti-list me-2"></i>لیست محصولات
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="<?= BASE_URL ?>/modules/products/sold.php">
+                <i class="ti ti-chart-bar me-2"></i>فروش (Sold)
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="<?= BASE_URL ?>/modules/products/stock.php">
+                <i class="ti ti-package me-2"></i>موجودی
+              </a>
+            </li>
+          </ul>
         </li>
         <?php endif; ?>
 

@@ -19,15 +19,7 @@ match ($action) {
 
 function actionList(): never {
     global $productQuery;
-    $products = $productQuery->raw("
-        SELECT p.product_id, p.product_name, p.unit_price, p.is_active,
-               MAX(pph.start_date) AS price_date
-        FROM   products p
-        LEFT JOIN product_price_history pph ON pph.product_id = p.product_id
-        GROUP  BY p.product_id
-        ORDER  BY p.product_name ASC
-    ")->fetchAll();
-
+    $products = $productQuery->getAll();
     foreach ($products as &$p) {
         $p['price_date'] = $p['price_date'] ? toJalali($p['price_date']) : '—';
     }
@@ -60,15 +52,16 @@ function actionDelete(): never {
     if (!$product) Response::notFound('محصول یافت نشد');
 
     $db = getDB();
+
     $used = $db->prepare("SELECT COUNT(*) FROM order_items WHERE product_id = ?");
     $used->execute([$id]);
     if ($used->fetchColumn() > 0) {
-        Response::error('این محصول در سفارش‌ها استفاده شده و قابل حذف نیست');
+        Response::error('این محصول در سفارش‌ها استفاده شده و قابل حذف نیست — غیرفعالش کنید');
     }
 
-    $inInventory = $db->prepare("SELECT COUNT(*) FROM inventory WHERE product_id = ? AND quantity > 0");
-    $inInventory->execute([$id]);
-    if ($inInventory->fetchColumn() > 0) {
+    $inStock = $db->prepare("SELECT COUNT(*) FROM inventory WHERE product_id = ? AND quantity > 0");
+    $inStock->execute([$id]);
+    if ($inStock->fetchColumn() > 0) {
         Response::error('این محصول موجودی انبار دارد — ابتدا موجودی را صفر کنید');
     }
 
@@ -76,6 +69,7 @@ function actionDelete(): never {
     Response::success('محصول با موفقیت حذف شد');
 }
 
+// برای dropdown در سفارش‌ها
 function actionSelect(): never {
     global $productQuery;
     $list = $productQuery->getSelectList();

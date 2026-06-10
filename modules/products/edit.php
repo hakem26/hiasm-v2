@@ -18,17 +18,10 @@ $old    = $product;
 
 if (isPost()) {
     $v = new Validator($_POST);
-    $v->required('product_name', 'unit_price')
+    $v->required('product_name', 'profit_type', 'profit_value')
       ->maxLength('product_name', 150)
-      ->positiveNumber('unit_price');
-
-    // اگه قیمت تغییر کرده تاریخ اجرا اجباریه
-    $newPrice   = (float)str_replace(',', '', post('unit_price'));
-    $priceChanged = abs($newPrice - (float)$product['unit_price']) > 0.001;
-
-    if ($priceChanged) {
-        $v->required('price_start_date')->jalaliDate('price_start_date');
-    }
+      ->positiveNumber('profit_value')
+      ->inList('profit_type', ['fixed', 'percent']);
 
     $old = array_merge($product, $v->all());
 
@@ -36,19 +29,19 @@ if (isPost()) {
         if ($productQuery->nameExists($v->get('product_name'), $id)) {
             $errors['product_name'] = 'این نام محصول قبلاً ثبت شده است';
         } else {
-            // بروزرسانی نام
-            $productQuery->update($id, [
-                'product_name' => $v->get('product_name'),
-            ]);
-
-            // اگه قیمت تغییر کرده ثبت تاریخچه
-            if ($priceChanged) {
-                $startDate = fromJalali($v->get('price_start_date'));
-                $productQuery->updatePrice($id, $newPrice, currentUserId(), $startDate);
+            $profitValue = (float)$v->get('profit_value');
+            // اگه درصد بود نباید بیشتر از 100 باشه
+            if ($v->get('profit_type') === 'percent' && $profitValue > 100) {
+                $errors['profit_value'] = 'درصد سود نمی‌تواند بیشتر از ۱۰۰ باشد';
+            } else {
+                $productQuery->update($id, [
+                    'product_name' => $v->get('product_name'),
+                    'profit_type'  => $v->get('profit_type'),
+                    'profit_value' => $profitValue,
+                ]);
+                setFlash('success', 'محصول با موفقیت بروزرسانی شد');
+                redirect(BASE_URL . '/modules/products/list.php');
             }
-
-            setFlash('success', 'محصول با موفقیت بروزرسانی شد');
-            redirect(BASE_URL . '/modules/products/list.php');
         }
     } else {
         $errors = $v->errors();
@@ -56,7 +49,6 @@ if (isPost()) {
 }
 
 $pageTitle = 'ویرایش محصول';
-$todayJalali = toJalali(date('Y-m-d'));
 require_once BASE_PATH . '/includes/header.php';
 ?>
 
@@ -72,7 +64,11 @@ require_once BASE_PATH . '/includes/header.php';
         <i class="ti ti-edit me-2 text-primary"></i>ویرایش: <?= e($product['product_name']) ?>
       </h2>
     </div>
-    <div class="col-auto">
+    <div class="col-auto d-flex gap-2">
+      <a href="<?= BASE_URL ?>/modules/products/change_price.php?id=<?= $id ?>"
+         class="btn btn-ghost-warning btn-sm">
+        <i class="ti ti-currency-dollar me-1"></i>تغییر قیمت
+      </a>
       <a href="<?= BASE_URL ?>/modules/products/history.php?id=<?= $id ?>"
          class="btn btn-ghost-info btn-sm">
         <i class="ti ti-history me-1"></i>تاریخچه قیمت
@@ -83,9 +79,19 @@ require_once BASE_PATH . '/includes/header.php';
 
 <div class="row justify-content-center">
   <div class="col-lg-5">
+
+    <!-- قیمت جاری — فقط نمایش -->
+    <div class="alert alert-info mb-3">
+      <i class="ti ti-tag me-2"></i>قیمت جاری:
+      <strong class="num"><?= number_format((float)$product['unit_price']) ?> تومان</strong>
+      <small class="text-muted me-2">
+        — برای تغییر از دکمه «تغییر قیمت» استفاده کنید
+      </small>
+    </div>
+
     <div class="card">
       <div class="card-body">
-        <form method="POST" autocomplete="off" id="edit-form">
+        <form method="POST" autocomplete="off">
 
           <div class="mb-3">
             <label class="form-label required">نام محصول</label>
@@ -97,40 +103,42 @@ require_once BASE_PATH . '/includes/header.php';
             <?php endif; ?>
           </div>
 
+          <!-- سود همکار -->
           <div class="mb-3">
-            <label class="form-label required">قیمت واحد (تومان)</label>
-            <div class="input-group">
-              <input type="text" name="unit_price" id="unit-price"
-                     class="form-control <?= isset($errors['unit_price']) ? 'is-invalid' : '' ?>"
-                     value="<?= e($old['unit_price'] ?? '') ?>"
-                     data-original="<?= (float)$product['unit_price'] ?>"
-                     required>
-              <span class="input-group-text">تومان</span>
-            </div>
-            <?php if (isset($errors['unit_price'])): ?>
-              <div class="text-danger small mt-1"><?= e($errors['unit_price']) ?></div>
-            <?php endif; ?>
-            <div class="form-text" id="price-preview"></div>
-          </div>
-
-          <!-- تاریخ اجرای قیمت جدید — فقط اگه قیمت تغییر کنه نشون داده می‌شه -->
-          <div class="mb-4" id="price-date-wrap" style="display:none">
-            <label class="form-label required">تاریخ اجرای قیمت جدید</label>
-            <input type="text" name="price_start_date" id="price-start-date"
-                   class="form-control <?= isset($errors['price_start_date']) ? 'is-invalid' : '' ?>"
-                   value="<?= e($old['price_start_date'] ?? $todayJalali) ?>"
-                   placeholder="مثال: ۱۴۰۴/۰۱/۰۱"
-                   data-jdp autocomplete="off">
-            <?php if (isset($errors['price_start_date'])): ?>
-              <div class="invalid-feedback"><?= e($errors['price_start_date']) ?></div>
-            <?php endif; ?>
-            <div class="form-text text-warning">
+            <label class="form-label required">نوع سود همکار</label>
+            <div class="form-text mb-2 text-muted">
               <i class="ti ti-info-circle me-1"></i>
-              قیمت قدیمی بسته و قیمت جدید از این تاریخ ثبت می‌شود
+              مقدار پیش‌فرض — سرگروه در ماه کاری می‌تواند تغییرش دهد
+            </div>
+            <div class="row g-2">
+              <div class="col-5">
+                <select name="profit_type" id="profit-type" class="form-select" required>
+                  <option value="percent"
+                    <?= ($old['profit_type'] ?? 'percent') === 'percent' ? 'selected' : '' ?>>
+                    درصد از فروش
+                  </option>
+                  <option value="fixed"
+                    <?= ($old['profit_type'] ?? '') === 'fixed' ? 'selected' : '' ?>>
+                    مبلغ ثابت (تومان)
+                  </option>
+                </select>
+              </div>
+              <div class="col-7">
+                <div class="input-group">
+                  <input type="text" name="profit_value" id="profit-value"
+                         class="form-control <?= isset($errors['profit_value']) ? 'is-invalid' : '' ?>"
+                         value="<?= e($old['profit_value'] ?? '0') ?>"
+                         placeholder="مقدار" required>
+                  <span class="input-group-text" id="profit-unit">%</span>
+                </div>
+                <?php if (isset($errors['profit_value'])): ?>
+                  <div class="text-danger small mt-1"><?= e($errors['profit_value']) ?></div>
+                <?php endif; ?>
+              </div>
             </div>
           </div>
 
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 mt-4">
             <button type="submit" class="btn btn-primary flex-fill">
               <i class="ti ti-device-floppy me-1"></i>بروزرسانی
             </button>
@@ -148,34 +156,13 @@ require_once BASE_PATH . '/includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  var inp      = document.getElementById('unit-price');
-  var preview  = document.getElementById('price-preview');
-  var dateWrap = document.getElementById('price-date-wrap');
-  var dateInp  = document.getElementById('price-start-date');
-  var original = parseFloat(inp.dataset.original);
+  var typeSelect = document.getElementById('profit-type');
+  var unitLabel  = document.getElementById('profit-unit');
 
-  function checkPriceChange() {
-    var v = parseFloat(inp.value.replace(/,/g, ''));
-    if (!isNaN(v) && v > 0) {
-      preview.textContent = '= ' + v.toLocaleString('fa-IR') + ' تومان';
-      if (Math.abs(v - original) > 0.001) {
-        dateWrap.style.display = '';
-        dateInp.required = true;
-      } else {
-        dateWrap.style.display = 'none';
-        dateInp.required = false;
-      }
-    } else {
-      preview.textContent = '';
-    }
+  function updateUnit() {
+    unitLabel.textContent = typeSelect.value === 'percent' ? '%' : 'تومان';
   }
-
-  inp.addEventListener('input', checkPriceChange);
-  checkPriceChange(); // بررسی اولیه (اگه از قبل خطا داشت)
-
-  // JalaliDatePicker
-  if (typeof jalaliDatepicker !== 'undefined') {
-    jalaliDatepicker.startWatch({ input: dateInp });
-  }
+  typeSelect.addEventListener('change', updateUnit);
+  updateUnit();
 });
 </script>
