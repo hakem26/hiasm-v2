@@ -89,3 +89,10 @@ body {
   .page-wrapper { padding: 0 !important; }
   .page-body { padding: 0 !important; }
 }
+
+/* ── JalaliDatePicker — اطمینان از z-index و کلیک‌پذیری ─────── */
+#jalaliDatepickerDiv,
+.jdp-container {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}

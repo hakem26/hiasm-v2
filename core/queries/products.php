@@ -27,6 +27,17 @@ class ProductQuery extends BaseQuery {
         ")->fetchAll();
     }
 
+    // ── جستجوی محصول برای autocomplete ──────────────────────
+    public function search(string $term, int $limit = 10): array {
+        return $this->raw("
+            SELECT product_id, product_name, unit_price
+            FROM   products
+            WHERE  is_active = 1 AND product_name LIKE ?
+            ORDER  BY product_name ASC
+            LIMIT  ?
+        ", ['%' . $term . '%', $limit])->fetchAll();
+    }
+
     // ── یک محصول کامل ────────────────────────────────────────
     public function getByIdWithPrice(int $id): ?array {
         $row = $this->raw("
@@ -50,25 +61,106 @@ class ProductQuery extends BaseQuery {
         ", [$productId])->fetchAll();
     }
 
-    // ── ثبت تغییر قیمت ───────────────────────────────────────
+    // ── ثبت/بروزرسانی قیمت در یک تاریخ ──────────────────────
+    // اگه رکوردی با همین start_date وجود داشته باشه آپدیت می‌شه
+    // وگرنه رکورد جدید ساخته می‌شه — بعد کل تاریخچه recalc می‌شه
     public function updatePrice(int $productId, float $newPrice,
                                 int $changedBy, string $startDate): void {
-        $db = $this->db;
-        $db->prepare("
+        $existing = $this->raw("
+            SELECT id FROM product_price_history
+            WHERE  product_id = ? AND start_date = ?
+        ", [$productId, $startDate])->fetch();
+
+        if ($existing) {
+            $this->raw("
+                UPDATE product_price_history
+                SET    unit_price = ?, changed_by = ?
+                WHERE  id = ?
+            ", [$newPrice, $changedBy, $existing['id']]);
+        } else {
+            $this->raw("
+                INSERT INTO product_price_history
+                       (product_id, unit_price, start_date, changed_by)
+                VALUES (?, ?, ?, ?)
+            ", [$productId, $newPrice, $startDate, $changedBy]);
+        }
+
+        $this->recalcPriceHistory($productId);
+    }
+
+    // ── ویرایش یک ردیف موجود از تاریخچه (تغییر قیمت/تاریخ) ──
+    public function updatePriceHistoryRow(int $historyId, int $productId,
+                                          float $newPrice, string $newStartDate,
+                                          int $changedBy): void {
+        $this->raw("
             UPDATE product_price_history
-            SET    end_date = DATE_SUB(?, INTERVAL 1 DAY)
-            WHERE  product_id = ? AND end_date IS NULL
-        ")->execute([$startDate, $productId]);
+            SET    unit_price = ?, start_date = ?, changed_by = ?
+            WHERE  id = ? AND product_id = ?
+        ", [$newPrice, $newStartDate, $changedBy, $historyId, $productId]);
 
-        $db->prepare("
-            INSERT INTO product_price_history
-                   (product_id, unit_price, start_date, changed_by)
-            VALUES (?, ?, ?, ?)
-        ")->execute([$productId, $newPrice, $startDate, $changedBy]);
+        $this->recalcPriceHistory($productId);
+    }
 
-        $db->prepare("
-            UPDATE products SET unit_price = ? WHERE product_id = ?
-        ")->execute([$newPrice, $productId]);
+    // ──────────────────────────────────────────────────────
+    //  بازمحاسبه end_date همه ردیف‌های تاریخچه یک محصول
+    //  end_date هر ردیف = start_date ردیف بعدی - یک روز
+    //  آخرین ردیف end_date = NULL (جاری)
+    //  قیمت جاری products.unit_price = آخرین ردیفی که
+    //  start_date آن <= امروز است
+    // ──────────────────────────────────────────────────────
+    public function recalcPriceHistory(int $productId): void {
+        $rows = $this->raw("
+            SELECT id, unit_price, start_date
+            FROM   product_price_history
+            WHERE  product_id = ?
+            ORDER  BY start_date ASC, id ASC
+        ", [$productId])->fetchAll();
+
+        $n = count($rows);
+        $today = date('Y-m-d');
+        $currentPrice = null;
+
+        for ($i = 0; $i < $n; $i++) {
+            if ($i < $n - 1) {
+                // end_date = روز قبل از شروع ردیف بعدی
+                $nextStart = $rows[$i + 1]['start_date'];
+                $endDate   = date('Y-m-d', strtotime($nextStart . ' -1 day'));
+            } else {
+                $endDate = null; // آخرین ردیف همیشه جاری/آینده است
+            }
+
+            $this->raw("
+                UPDATE product_price_history SET end_date = ? WHERE id = ?
+            ", [$endDate, $rows[$i]['id']]);
+
+            // قیمت جاری = آخرین ردیفی که start_date آن گذشته یا امروزه
+            if ($rows[$i]['start_date'] <= $today) {
+                $currentPrice = $rows[$i]['unit_price'];
+            }
+        }
+
+        if ($currentPrice !== null) {
+            $this->raw("
+                UPDATE products SET unit_price = ? WHERE product_id = ?
+            ", [$currentPrice, $productId]);
+        }
+    }
+
+    // ── حذف یک ردیف از تاریخچه ───────────────────────────────
+    // حداقل یک ردیف باید باقی بمونه
+    public function deletePriceHistory(int $historyId, int $productId): bool {
+        $cnt = (int)$this->raw("
+            SELECT COUNT(*) FROM product_price_history WHERE product_id = ?
+        ", [$productId])->fetchColumn();
+
+        if ($cnt <= 1) return false;
+
+        $this->raw("
+            DELETE FROM product_price_history WHERE id = ? AND product_id = ?
+        ", [$historyId, $productId]);
+
+        $this->recalcPriceHistory($productId);
+        return true;
     }
 
     // ── بررسی تکراری بودن نام ────────────────────────────────
@@ -90,7 +182,10 @@ class ProductQuery extends BaseQuery {
     }
 
     // ── موجودی محصول در یک تاریخ خاص ────────────────────────
-    public function getInventoryAtDate(int $ownerId, string $date): array {
+    // $includeZero = true یعنی محصولات با موجودی صفر هم نشون داده بشن
+    public function getInventoryAtDate(int $ownerId, string $date, bool $includeZero = false): array {
+        $having = $includeZero ? '' : 'HAVING quantity_at_date > 0';
+
         return $this->raw("
             SELECT p.product_id, p.product_name, p.unit_price,
                    COALESCE(SUM(
@@ -107,7 +202,7 @@ class ProductQuery extends BaseQuery {
                   AND (it.to_owner_id = ? OR it.from_owner_id = ?)
             WHERE  p.is_active = 1
             GROUP  BY p.product_id
-            HAVING quantity_at_date > 0
+            {$having}
             ORDER  BY p.product_name ASC
         ", [$ownerId, $ownerId, $date, $ownerId, $ownerId])->fetchAll();
     }

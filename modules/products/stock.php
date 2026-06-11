@@ -1,16 +1,18 @@
 <?php
 define('HIASM_ENTRY', true);
 require_once __DIR__ . '/../../core/init.php';
-requireLogin(); // همه لاگین‌شده‌ها
+requireLogin();
 
 require_once BASE_PATH . '/core/queries/products.php';
 $productQuery = new ProductQuery();
 
-$dateJalali = get('date', toJalali(date('Y-m-d')));
+$dateJalali = get('date') ?: toEnglishDigits(toJalali(date('Y-m-d')));
+$dateJalali = toEnglishDigits($dateJalali);
 $dateM      = fromJalali($dateJalali);
 $ownerId    = currentUserId();
+$showAll    = get('show_all') === '1';
 
-$stockData  = $productQuery->getInventoryAtDate($ownerId, $dateM);
+$stockData  = $productQuery->getInventoryAtDate($ownerId, $dateM, $showAll);
 $totalQty   = array_sum(array_column($stockData, 'quantity_at_date'));
 
 $pageTitle  = 'موجودی محصولات';
@@ -55,6 +57,17 @@ require_once BASE_PATH . '/includes/header.php';
           <i class="ti ti-calendar-today me-1"></i>امروز
         </a>
       </div>
+      <div class="col-auto">
+        <label class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" name="show_all" value="1"
+                 <?= $showAll ? 'checked' : '' ?>
+                 onchange="this.form.submit()">
+          <span class="form-check-label">نمایش همه محصولات (شامل صفر)</span>
+        </label>
+      </div>
+      <?php if ($showAll): ?>
+        <input type="hidden" name="show_all" value="1">
+      <?php endif; ?>
     </form>
   </div>
 </div>
@@ -93,22 +106,21 @@ require_once BASE_PATH . '/includes/header.php';
               <td><?= e($row['product_name']) ?></td>
               <td class="text-center num"><?= number_format((float)$row['unit_price']) ?></td>
               <td class="text-center">
-                <span class="num fw-bold <?= $qty < 5 ? 'text-danger' : '' ?>">
+                <span class="num fw-bold <?= $qty < 5 ? 'text-danger' : '' ?> <?= $qty == 0 ? 'text-muted' : '' ?>">
                   <?= number_format($qty) ?>
                 </span>
-                <?php if ($qty < 5): ?>
+                <?php if ($qty > 0 && $qty < 5): ?>
                   <i class="ti ti-alert-triangle text-warning ms-1"></i>
                 <?php endif; ?>
               </td>
               <td class="text-center">
-                <!-- ویرایش تخصیص -->
                 <a href="<?= BASE_URL ?>/modules/products/allocation_edit.php?product_id=<?= $row['product_id'] ?>&date=<?= urlencode($dateJalali) ?>"
                    class="btn btn-sm btn-icon btn-ghost-primary" title="ویرایش تخصیص">
                   <i class="ti ti-edit"></i>
                 </a>
-                <!-- بازگشت به انبار -->
-                <button onclick="returnToStock(<?= $row['product_id'] ?>, '<?= e($row['product_name']) ?>')"
-                        class="btn btn-sm btn-icon btn-ghost-warning" title="بازگشت به انبار شرکت">
+                <button onclick="returnToStock(<?= $row['product_id'] ?>, '<?= e(addslashes($row['product_name'])) ?>', <?= $qty ?>)"
+                        class="btn btn-sm btn-icon btn-ghost-warning" title="بازگشت به انبار شرکت"
+                        <?= $qty <= 0 ? 'disabled' : '' ?>>
                   <i class="ti ti-arrow-back-up"></i>
                 </button>
               </td>
@@ -139,7 +151,8 @@ require_once BASE_PATH . '/includes/header.php';
       </div>
       <div class="modal-body">
         <p class="text-muted mb-3">
-          محصول: <strong id="return-product-name"></strong>
+          محصول: <strong id="return-product-name"></strong><br>
+          موجودی فعلی: <strong id="return-current-qty" class="num"></strong>
         </p>
         <div class="mb-3">
           <label class="form-label required">تاریخ بازگشت</label>
@@ -167,14 +180,16 @@ require_once BASE_PATH . '/includes/header.php';
 <?php require_once BASE_PATH . '/includes/footer.php'; ?>
 
 <script>
-var API_URL       = <?= json_encode($apiUrl) ?>;
-var currentUserId = <?= currentUserId() ?>;
-var returnProductId = 0;
+var API_URL          = <?= json_encode($apiUrl) ?>;
+var CURRENT_USER_ID  = <?= currentUserId() ?>;
+var returnProductId  = 0;
 
-function returnToStock(productId, productName) {
+function returnToStock(productId, productName, currentQty) {
   returnProductId = productId;
   document.getElementById('return-product-name').textContent = productName;
+  document.getElementById('return-current-qty').textContent  = currentQty.toLocaleString('fa-IR');
   document.getElementById('return-qty').value = '';
+  document.getElementById('return-qty').max   = currentQty;
   var modal = new bootstrap.Modal(document.getElementById('modal-return'));
   modal.show();
 }
@@ -192,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
     hiasm.post(API_URL, {
       action:     'return',
       product_id: returnProductId,
-      owner_id:   currentUserId,
+      owner_id:   CURRENT_USER_ID,
       qty:        qty,
       date:       date
     }).then(function(res) {

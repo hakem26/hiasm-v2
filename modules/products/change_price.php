@@ -13,23 +13,36 @@ if (!$product) {
     redirect(BASE_URL . '/modules/products/list.php');
 }
 
-// حالت ویرایش تاریخچه
-$historyId   = (int)get('history_id');
-$editingRow  = null;
+$historyId  = (int)get('history_id');
+$editingRow = null;
 if ($historyId > 0) {
     $db   = getDB();
     $stmt = $db->prepare("SELECT * FROM product_price_history WHERE id = ? AND product_id = ?");
     $stmt->execute([$historyId, $id]);
     $editingRow = $stmt->fetch();
+    if (!$editingRow) {
+        setFlash('error', 'رکورد یافت نشد');
+        redirect(BASE_URL . '/modules/products/history.php?id=' . $id);
+    }
+}
+
+// ── حذف ردیف ──────────────────────────────────────────────────
+if (isPost() && post('delete_history') === '1' && $editingRow) {
+    if ($productQuery->deletePriceHistory($historyId, $id)) {
+        setFlash('success', 'ردیف تاریخچه حذف شد');
+    } else {
+        setFlash('error', 'حداقل یک ردیف قیمت باید باقی بماند');
+    }
+    redirect(BASE_URL . '/modules/products/history.php?id=' . $id);
 }
 
 $errors = [];
 $old    = $editingRow ? [
-    'unit_price'       => $editingRow['unit_price'],
-    'price_start_date' => toJalali($editingRow['start_date']),
+    'unit_price'       => (string)(float)$editingRow['unit_price'],
+    'price_start_date' => toEnglishDigits(toJalali($editingRow['start_date'])),
 ] : [];
 
-if (isPost()) {
+if (isPost() && post('delete_history') !== '1') {
     $v = new Validator($_POST);
     $v->required('unit_price', 'price_start_date')
       ->positiveNumber('unit_price')
@@ -40,36 +53,17 @@ if (isPost()) {
     if ($v->passes()) {
         $newPrice  = (float)str_replace(',', '', $v->get('unit_price'));
         $startDate = fromJalali($v->get('price_start_date'));
-        $db        = getDB();
 
         if ($editingRow) {
-            // ویرایش ردیف موجود در تاریخچه
-            $db->prepare("
-                UPDATE product_price_history
-                SET unit_price = ?, start_date = ?
-                WHERE id = ?
-            ")->execute([$newPrice, $startDate, $historyId]);
-
-            // اگه این ردیف end_date نداره (جاری)، قیمت products هم آپدیت کن
-            if (!$editingRow['end_date']) {
-                $db->prepare("UPDATE products SET unit_price = ? WHERE product_id = ?")
-                   ->execute([$newPrice, $id]);
-            }
-
+            $productQuery->updatePriceHistoryRow(
+                $historyId, $id, $newPrice, $startDate, currentUserId()
+            );
             setFlash('success', 'تاریخچه قیمت بروزرسانی شد');
         } else {
-            // ثبت قیمت جدید
-            if (abs($newPrice - (float)$product['unit_price']) < 0.001) {
-                $errors['unit_price'] = 'قیمت جدید با قیمت فعلی یکسان است';
-            } else {
-                $productQuery->updatePrice($id, $newPrice, currentUserId(), $startDate);
-                setFlash('success', 'قیمت جدید با موفقیت ثبت شد');
-            }
+            $productQuery->updatePrice($id, $newPrice, currentUserId(), $startDate);
+            setFlash('success', 'قیمت جدید با موفقیت ثبت شد');
         }
-
-        if (empty($errors)) {
-            redirect(BASE_URL . '/modules/products/history.php?id=' . $id);
-        }
+        redirect(BASE_URL . '/modules/products/history.php?id=' . $id);
     } else {
         $errors = $v->errors();
     }
@@ -77,7 +71,7 @@ if (isPost()) {
 
 $isEdit      = ($editingRow !== null);
 $pageTitle   = $isEdit ? 'ویرایش قیمت' : 'تغییر قیمت: ' . $product['product_name'];
-$todayJalali = toJalali(date('Y-m-d'));
+$todayJalali = toEnglishDigits(toJalali(date('Y-m-d')));
 require_once BASE_PATH . '/includes/header.php';
 ?>
 
@@ -106,7 +100,7 @@ require_once BASE_PATH . '/includes/header.php';
       <i class="ti ti-alert-triangle me-2"></i>
       قیمت فعلی:
       <strong class="num"><?= number_format((float)$product['unit_price']) ?> تومان</strong>
-      <br><small>قیمت قدیمی بسته می‌شود و قیمت جدید از تاریخ انتخابی اعمال می‌شود</small>
+      <br><small>تاریخچه به‌طور خودکار بازمحاسبه می‌شود</small>
     </div>
     <?php else: ?>
     <div class="alert alert-info mb-3">
@@ -141,7 +135,7 @@ require_once BASE_PATH . '/includes/header.php';
             <input type="text" name="price_start_date"
                    class="form-control <?= isset($errors['price_start_date']) ? 'is-invalid' : '' ?>"
                    value="<?= e($old['price_start_date'] ?? $todayJalali) ?>"
-                   placeholder="مثال: ۱۴۰۴/۰۱/۰۱"
+                   placeholder="مثال: 1404/01/01"
                    data-jdp autocomplete="off">
             <?php if (isset($errors['price_start_date'])): ?>
               <div class="invalid-feedback"><?= e($errors['price_start_date']) ?></div>
@@ -159,6 +153,17 @@ require_once BASE_PATH . '/includes/header.php';
           </div>
 
         </form>
+
+        <?php if ($isEdit): ?>
+        <hr>
+        <form method="POST" onsubmit="return confirm('این ردیف از تاریخچه حذف شود؟ تاریخچه بازمحاسبه می‌شود.')">
+          <input type="hidden" name="delete_history" value="1">
+          <button type="submit" class="btn btn-outline-danger w-100">
+            <i class="ti ti-trash me-1"></i>حذف این ردیف از تاریخچه
+          </button>
+        </form>
+        <?php endif; ?>
+
       </div>
     </div>
   </div>
@@ -170,12 +175,12 @@ require_once BASE_PATH . '/includes/header.php';
 document.addEventListener('DOMContentLoaded', function() {
   var inp     = document.getElementById('unit-price');
   var preview = document.getElementById('price-preview');
-  inp.addEventListener('input', function() {
-    var v = parseFloat(this.value.replace(/,/g, ''));
+  function updatePreview() {
+    var v = parseFloat(inp.value.replace(/,/g, ''));
     preview.textContent = !isNaN(v) && v > 0
       ? '= ' + v.toLocaleString('fa-IR') + ' تومان' : '';
-  });
-  // trigger برای مقدار اولیه
-  inp.dispatchEvent(new Event('input'));
+  }
+  inp.addEventListener('input', updatePreview);
+  updatePreview();
 });
 </script>

@@ -6,16 +6,11 @@ requireLogin();
 $db      = getDB();
 $ownerId = currentUserId();
 
-// لیست اسناد تخصیص این کاربر
 $docs = $db->prepare("
-    SELECT ad.id, ad.alloc_date, ad.note,
-           COUNT(ai.id) AS item_count,
-           SUM(ai.quantity) AS total_qty
-    FROM   allocation_docs ad
-    LEFT JOIN allocation_items ai ON ai.doc_id = ad.id
-    WHERE  ad.owner_id = ?
-    GROUP  BY ad.id
-    ORDER  BY ad.alloc_date DESC
+    SELECT id, alloc_date
+    FROM   allocation_docs
+    WHERE  owner_id = ?
+    ORDER  BY alloc_date DESC, id DESC
 ");
 $docs->execute([$ownerId]);
 $allocDocs = $docs->fetchAll();
@@ -52,17 +47,15 @@ require_once BASE_PATH . '/includes/header.php';
     <table class="table table-vcenter card-table">
       <thead>
         <tr>
-          <th>ردیف</th>
+          <th width="60">ردیف</th>
           <th>تاریخ تخصیص</th>
-          <th class="text-center">تعداد اقلام</th>
-          <th class="text-center">مجموع تعداد</th>
           <th class="text-center">عملیات</th>
         </tr>
       </thead>
       <tbody>
         <?php if (empty($allocDocs)): ?>
           <tr>
-            <td colspan="5" class="text-center text-muted py-5">
+            <td colspan="3" class="text-center text-muted py-5">
               <i class="ti ti-clipboard-x mb-2" style="font-size:2rem"></i>
               <p>سندی ثبت نشده — از دکمه «ایجاد سند جدید» شروع کنید</p>
             </td>
@@ -72,9 +65,11 @@ require_once BASE_PATH . '/includes/header.php';
             <tr>
               <td><?= $i + 1 ?></td>
               <td class="ltr"><?= toJalali($doc['alloc_date']) ?></td>
-              <td class="text-center num"><?= $doc['item_count'] ?></td>
-              <td class="text-center num"><?= number_format((int)$doc['total_qty']) ?></td>
               <td class="text-center">
+                <a href="<?= BASE_URL ?>/modules/products/allocation_view.php?id=<?= $doc['id'] ?>"
+                   class="btn btn-sm btn-icon btn-ghost-info" title="نمایش">
+                  <i class="ti ti-eye"></i>
+                </a>
                 <a href="<?= BASE_URL ?>/modules/products/allocation_add.php?edit_id=<?= $doc['id'] ?>"
                    class="btn btn-sm btn-icon btn-ghost-primary" title="ویرایش سند">
                   <i class="ti ti-edit"></i>

@@ -14,6 +14,7 @@ match ($action) {
     'toggle' => actionToggle(),
     'delete' => actionDelete(),
     'select' => actionSelect(),
+    'search' => actionSearch(),
     default  => Response::error('عملیات نامعتبر است')
 };
 
@@ -73,5 +74,14 @@ function actionDelete(): never {
 function actionSelect(): never {
     global $productQuery;
     $list = $productQuery->getSelectList();
+    Response::success('', $list);
+}
+
+// برای autocomplete در سندهای تخصیص
+function actionSearch(): never {
+    global $productQuery;
+    $term = trim(get('q'));
+    if (mb_strlen($term) < 2) Response::success('', []);
+    $list = $productQuery->search($term);
     Response::success('', $list);
 }
