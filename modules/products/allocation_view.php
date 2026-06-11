@@ -26,7 +26,7 @@ if (!$docRow) {
 }
 
 $items = $db->prepare("
-    SELECT ai.*, p.product_name, p.unit_price
+    SELECT ai.*, p.product_name
     FROM   allocation_items ai
     JOIN   products p ON p.product_id = ai.product_id
     WHERE  ai.doc_id = ?
@@ -75,18 +75,16 @@ require_once BASE_PATH . '/includes/header.php';
       <thead>
         <tr>
           <th>محصول</th>
-          <th class="text-center">قیمت واحد (تومان)</th>
           <th class="text-center">تعداد تخصیص‌یافته</th>
         </tr>
       </thead>
       <tbody>
         <?php if (empty($itemsArr)): ?>
-          <tr><td colspan="3" class="text-center text-muted py-4">آیتمی ثبت نشده</td></tr>
+          <tr><td colspan="2" class="text-center text-muted py-4">آیتمی ثبت نشده</td></tr>
         <?php else: ?>
           <?php foreach ($itemsArr as $item): ?>
             <tr>
               <td><?= e($item['product_name']) ?></td>
-              <td class="text-center num"><?= number_format((float)$item['unit_price']) ?></td>
               <td class="text-center num fw-bold"><?= number_format((int)$item['quantity']) ?></td>
             </tr>
           <?php endforeach; ?>

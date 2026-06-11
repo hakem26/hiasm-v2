@@ -25,10 +25,27 @@ body {
   text-align: right;
 }
 
-/* ── اعداد — همیشه LTR ──────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────
+   RTL FIX — هسته اصلی مشکل ترتیب نمایش در جداول
+   مشکل: الگوریتم Bidi مرورگر محتوای کوتاه (عدد/حروف انگلیسی)
+   داخل سلول RTL را جابجا می‌کند و ستون‌بندی بهم می‌ریزد.
+   راه‌حل: unicode-bidi: plaintext روی همه سلول‌ها +
+   isolate روی محتوای عددی/لاتین داخل آن‌ها
+   ────────────────────────────────────────────────────────────── */
+
+/* همه جداول معمولی Tabler */
+.table th,
+.table td {
+  text-align: right;
+  unicode-bidi: plaintext;
+}
+
+/* اعداد و تاریخ‌ها — isolate تا روی چینش سلول اثر نذارن */
 .num, .price, .ltr {
+  unicode-bidi: isolate;
   direction: ltr;
   display: inline-block;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -37,12 +54,22 @@ body {
   direction: rtl;
   text-align: right;
   font-family: var(--font-fa) !important;
+  unicode-bidi: plaintext;
 }
-.tabulator .tabulator-header .tabulator-col {
+.tabulator .tabulator-header .tabulator-col,
+.tabulator .tabulator-col-title {
   text-align: right;
+  unicode-bidi: plaintext;
 }
 .tabulator-row .tabulator-cell {
   text-align: right;
+  unicode-bidi: plaintext;
+}
+/* محتوای داخل cell های Tabulator که شامل عدد/تاریخ هستن */
+.tabulator-cell .num,
+.tabulator-cell .ltr,
+.tabulator-cell .badge {
+  unicode-bidi: isolate;
 }
 
 /* ── دارک تم — اصلاح رنگ‌های Tabulator ─────────────────────── */

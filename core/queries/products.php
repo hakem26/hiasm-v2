@@ -28,14 +28,17 @@ class ProductQuery extends BaseQuery {
     }
 
     // ── جستجوی محصول برای autocomplete ──────────────────────
+    // نکته: LIMIT را مستقیم interpolate می‌کنیم چون با PDO emulate=false
+    // باید عددی صحیح در متن کوئری باشه نه bind شده
     public function search(string $term, int $limit = 10): array {
+        $limit = max(1, min(50, $limit)); // محدودیت امنیتی
         return $this->raw("
             SELECT product_id, product_name, unit_price
             FROM   products
             WHERE  is_active = 1 AND product_name LIKE ?
             ORDER  BY product_name ASC
-            LIMIT  ?
-        ", ['%' . $term . '%', $limit])->fetchAll();
+            LIMIT  {$limit}
+        ", ['%' . $term . '%'])->fetchAll();
     }
 
     // ── یک محصول کامل ────────────────────────────────────────
