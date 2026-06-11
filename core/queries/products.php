@@ -28,14 +28,25 @@ class ProductQuery extends BaseQuery {
     }
 
     // ── جستجوی محصول برای autocomplete ──────────────────────
-    // نکته: LIMIT را مستقیم interpolate می‌کنیم چون با PDO emulate=false
-    // باید عددی صحیح در متن کوئری باشه نه bind شده
+    // نکته۱: LIMIT را مستقیم interpolate می‌کنیم چون با PDO emulate=false
+    //        باید عددی صحیح در متن کوئری باشه نه bind شده
+    // نکته۲: نرمال‌سازی ی/ك عربی به ی/ک فارسی — هم در ستون و هم در
+    //        عبارت جستجو — تا تفاوت کیبورد عربی/فارسی مشکل ایجاد نکنه
     public function search(string $term, int $limit = 10): array {
-        $limit = max(1, min(50, $limit)); // محدودیت امنیتی
+        $limit = max(1, min(50, $limit));
+
+        // نرمال‌سازی عبارت جستجو
+        $term = str_replace(
+            ['ي', 'ك', 'ة', 'أ', 'إ', 'آ'],
+            ['ی', 'ک', 'ه', 'ا', 'ا', 'ا'],
+            $term
+        );
+
         return $this->raw("
             SELECT product_id, product_name, unit_price
             FROM   products
-            WHERE  is_active = 1 AND product_name LIKE ?
+            WHERE  is_active = 1
+              AND  REPLACE(REPLACE(REPLACE(product_name, 'ي','ی'), 'ك','ک'), 'ة','ه') LIKE ?
             ORDER  BY product_name ASC
             LIMIT  {$limit}
         ", ['%' . $term . '%'])->fetchAll();
