@@ -140,7 +140,7 @@ require_once BASE_PATH . '/includes/header.php';
             <label class="form-label required">تاریخ اجرا</label>
             <input type="text" name="price_start_date"
                    class="form-control <?= isset($errors['price_start_date']) ? 'is-invalid' : '' ?>"
-                   value="<?= $todayJalali ?>"
+                   value="<?= e($old['price_start_date'] ?? $todayJalali) ?>"
                    placeholder="مثال: ۱۴۰۴/۰۱/۰۱"
                    data-jdp autocomplete="off">
             <?php if (isset($errors['price_start_date'])): ?>
