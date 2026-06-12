@@ -123,3 +123,27 @@ body {
   z-index: 99999 !important;
   pointer-events: auto !important;
 }
+
+/* ── Product Autocomplete — کامپوننت جستجوی محصول ──────────── */
+.hiasm-autocomplete-box {
+  z-index: 99999;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--tblr-bg-surface);
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+.hiasm-autocomplete-box .list-group-item {
+  cursor: pointer;
+  font-size: .875rem;
+  text-align: right;
+  border: none;
+  border-bottom: 1px solid var(--tblr-border-color);
+}
+.hiasm-autocomplete-box .list-group-item:last-child {
+  border-bottom: none;
+}
+.hiasm-autocomplete-box .list-group-item:hover {
+  background: var(--tblr-active-bg);
+}

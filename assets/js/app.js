@@ -135,3 +135,96 @@ function fmtBadge(map) {
     return `<span class="badge bg-${info[1]}">${info[0]}</span>`;
   };
 }
+
+
+// ── Product Autocomplete — قابل استفاده در همه جا ────────────
+// استفاده:
+//   hiasm.productSearch(inputElement, function(product) {
+//     console.log(product.product_id, product.product_name);
+//   });
+hiasm.productSearch = function(inputEl, onSelect, opts) {
+  opts = opts || {};
+  var apiUrl = opts.apiUrl || (window.HIASM_BASE_URL + '/api/products.php');
+  var minLen = opts.minLen || 2;
+  var timer  = null;
+
+  var box = document.createElement('div');
+  box.className = 'hiasm-autocomplete-box list-group shadow-sm';
+  box.style.display = 'none';
+  document.body.appendChild(box);
+
+  function position() {
+    var r = inputEl.getBoundingClientRect();
+    box.style.position = 'fixed';
+    box.style.left  = r.left + 'px';
+    box.style.top   = (r.bottom + 2) + 'px';
+    box.style.width = r.width + 'px';
+  }
+
+  function hide() { box.style.display = 'none'; }
+  function show() { position(); box.style.display = 'block'; }
+
+  function renderResults(items) {
+    box.innerHTML = '';
+    if (items && items.length) {
+      items.forEach(function(p) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'list-group-item list-group-item-action';
+        item.textContent = p.product_name;
+        // mousedown قبل از blur اجرا می‌شه — مشکل کلاسیک کلیک روی دراپ‌داون
+        item.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          inputEl.value = p.product_name;
+          inputEl.dataset.productId = p.product_id;
+          inputEl.classList.remove('is-invalid');
+          hide();
+          if (onSelect) onSelect(p);
+        });
+        box.appendChild(item);
+      });
+    } else {
+      var empty = document.createElement('div');
+      empty.className = 'list-group-item text-muted small';
+      empty.textContent = 'موردی یافت نشد';
+      box.appendChild(empty);
+    }
+    show();
+  }
+
+  inputEl.addEventListener('input', function() {
+    inputEl.dataset.productId = '';
+    var term = this.value.trim();
+
+    clearTimeout(timer);
+    if (term.length < minLen) { hide(); return; }
+
+    timer = setTimeout(function() {
+      hiasm.get(apiUrl, { action: 'search', q: term }).then(function(res) {
+        renderResults(res.success ? res.data : []);
+      });
+    }, 200);
+  });
+
+  inputEl.addEventListener('focus', function() {
+    var term = this.value.trim();
+    if (box.children.length > 0 && term.length >= minLen) show();
+  });
+
+  // بستن با کلیک بیرون — mousedown نه click، تا با انتخاب تداخل نکنه
+  document.addEventListener('mousedown', function(e) {
+    if (e.target !== inputEl && !box.contains(e.target)) hide();
+  });
+
+  window.addEventListener('scroll', function() {
+    if (box.style.display !== 'none') position();
+  }, true);
+  window.addEventListener('resize', function() {
+    if (box.style.display !== 'none') position();
+  });
+
+  return {
+    hide: hide,
+    destroy: function() { box.remove(); }
+  };
+};

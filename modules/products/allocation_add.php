@@ -88,14 +88,10 @@ require_once BASE_PATH . '/includes/header.php';
                 <?php foreach ($existingItems as $item): ?>
                   <tr class="item-row">
                     <td>
-                      <div class="position-relative">
-                        <input type="text" class="form-control form-control-sm product-search"
-                               value="<?= e($item['product_name']) ?>"
-                               data-product-id="<?= $item['product_id'] ?>"
-                               placeholder="نام محصول را تایپ کنید..." autocomplete="off">
-                        <div class="search-results list-group position-absolute w-100"
-                             style="z-index:1000;top:100%;display:none;max-height:200px;overflow-y:auto"></div>
-                      </div>
+                      <input type="text" class="form-control form-control-sm product-search"
+                             value="<?= e($item['product_name']) ?>"
+                             data-product-id="<?= $item['product_id'] ?>"
+                             placeholder="نام محصول را تایپ کنید..." autocomplete="off">
                     </td>
                     <td>
                       <input type="number" class="form-control form-control-sm qty-input"
@@ -133,13 +129,9 @@ require_once BASE_PATH . '/includes/header.php';
 <template id="row-template">
   <tr class="item-row">
     <td>
-      <div class="position-relative">
-        <input type="text" class="form-control form-control-sm product-search"
-               data-product-id=""
-               placeholder="حداقل ۲ حرف از نام محصول..." autocomplete="off">
-        <div class="search-results list-group position-absolute w-100"
-             style="z-index:1000;top:100%;display:none;max-height:200px;overflow-y:auto"></div>
-      </div>
+      <input type="text" class="form-control form-control-sm product-search"
+             data-product-id=""
+             placeholder="حداقل ۲ حرف از نام محصول..." autocomplete="off">
     </td>
     <td>
       <input type="number" class="form-control form-control-sm qty-input" min="1" placeholder="تعداد">
@@ -155,58 +147,17 @@ require_once BASE_PATH . '/includes/header.php';
 <?php require_once BASE_PATH . '/includes/footer.php'; ?>
 
 <script>
-var API_URL    = <?= json_encode(BASE_URL . '/api/products.php') ?>;
-var SAVE_URL   = <?= json_encode(BASE_URL . '/api/inventory.php') ?>;
-var IS_EDIT    = <?= $isEdit ? 'true' : 'false' ?>;
-var EDIT_ID    = <?= $editId ?>;
-var OWNER_ID   = <?= $ownerId ?>;
+var SAVE_URL  = <?= json_encode(BASE_URL . '/api/inventory.php') ?>;
+var BACK_URL  = <?= json_encode(BASE_URL . '/modules/products/allocation.php') ?>;
+var IS_EDIT   = <?= $isEdit ? 'true' : 'false' ?>;
+var EDIT_ID   = <?= $editId ?>;
+var OWNER_ID  = <?= $ownerId ?>;
 
 document.addEventListener('DOMContentLoaded', function() {
 
-  // ── autocomplete جستجوی محصول ─────────────────────────────
   function bindProductSearch(row) {
-    var input   = row.querySelector('.product-search');
-    var results = row.querySelector('.search-results');
-    var timer   = null;
-
-    input.addEventListener('input', function() {
-      var term = this.value.trim();
-      input.dataset.productId = ''; // reset selection
-
-      clearTimeout(timer);
-      if (term.length < 2) {
-        results.style.display = 'none';
-        return;
-      }
-
-      timer = setTimeout(function() {
-        hiasm.get(API_URL, { action: 'search', q: term }).then(function(res) {
-          if (!res.success || !res.data || res.data.length === 0) {
-            results.innerHTML = '<div class="list-group-item text-muted small">موردی یافت نشد</div>';
-          } else {
-            results.innerHTML = res.data.map(function(p) {
-              return '<button type="button" class="list-group-item list-group-item-action search-item" '
-                   + 'data-id="' + p.product_id + '" data-name="' + p.product_name.replace(/"/g,'&quot;') + '">'
-                   + p.product_name + '</button>';
-            }).join('');
-
-            results.querySelectorAll('.search-item').forEach(function(item) {
-              item.addEventListener('click', function() {
-                input.value = this.dataset.name;
-                input.dataset.productId = this.dataset.id;
-                results.style.display = 'none';
-              });
-            });
-          }
-          results.style.display = 'block';
-        });
-      }, 250);
-    });
-
-    // بستن نتایج با کلیک بیرون
-    document.addEventListener('click', function(e) {
-      if (!row.contains(e.target)) results.style.display = 'none';
-    });
+    var input = row.querySelector('.product-search');
+    hiasm.productSearch(input);
   }
 
   function bindRemoveButtons() {
@@ -215,11 +166,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // bind ردیف‌های موجود (حالت ویرایش)
   document.querySelectorAll('.item-row').forEach(bindProductSearch);
   bindRemoveButtons();
 
-  // افزودن ردیف جدید
   document.getElementById('add-row').addEventListener('click', function() {
     var tpl   = document.getElementById('row-template');
     var clone = tpl.content.cloneNode(true);
@@ -233,7 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('add-row').click();
   }
 
-  // ── ثبت نهایی ──────────────────────────────────────────────
   document.getElementById('btn-save').addEventListener('click', function() {
     var date = document.getElementById('alloc-date').value;
     if (!date) { hiasm.toast('تاریخ تخصیص را انتخاب کنید', 'error'); return; }
@@ -246,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var pid   = input.dataset.productId;
       var qty   = parseInt(row.querySelector('.qty-input').value);
 
-      if (!input.value.trim() && !qty) return; // ردیف خالی، نادیده بگیر
+      if (!input.value.trim() && !qty) return;
 
       if (!pid) {
         input.classList.add('is-invalid');
@@ -291,9 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }).then(function(res) {
       hiasm.toast(res.message, res.success ? 'success' : 'error');
       if (res.success) {
-        setTimeout(function() {
-          window.location.href = <?= json_encode(BASE_URL . '/modules/products/allocation.php') ?>;
-        }, 800);
+        setTimeout(function() { window.location.href = BACK_URL; }, 800);
       } else {
         btn.disabled = false;
         btn.innerHTML = '<i class="ti ti-device-floppy me-1"></i>ثبت نهایی سند';
