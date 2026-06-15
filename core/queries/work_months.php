@@ -6,6 +6,20 @@ class WorkMonthQuery extends BaseQuery {
     protected string $pk    = 'work_month_id';
 
     public function getAll(): array {
+        // اول ببینیم جدول orders وجود داره یا نه
+        $db = $this->db;
+        $tables = $db->query("SHOW TABLES LIKE 'orders'")->fetchAll();
+        
+        if (empty($tables)) {
+            // جدول orders وجود نداره — فقط work_months رو بیا
+            return $this->raw("
+                SELECT wm.*, 0 AS partner_count, 0 AS order_count, 0 AS total_sales
+                FROM   work_months wm
+                ORDER  BY wm.start_date DESC
+            ")->fetchAll();
+        }
+
+        // اگه جدول orders موجود باشه
         return $this->raw("
             SELECT wm.*,
                    COUNT(DISTINCT wd.partner_id) AS partner_count,

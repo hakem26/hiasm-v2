@@ -21,7 +21,7 @@ return [
 
     // ── انبار ────────────────────────────────────────────────
     'inventory.view_admin'  => [ROLE_ADMIN],
-    'inventory.view_own'    => [ROLE_ADMIN, ROLE_LEADER],
+    'inventory.view_own'    => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
     'inventory.receive'     => [ROLE_LEADER],           // دریافت از ادمین
     'inventory.adjust'      => [ROLE_ADMIN],            // تعدیل دستی
 
@@ -30,10 +30,17 @@ return [
     'partners.view'         => [ROLE_ADMIN, ROLE_LEADER],
 
     // ── ماه‌های کاری ─────────────────────────────────────────
-    'work_months.manage'    => [ROLE_ADMIN],
     'work_months.view'      => [ROLE_ADMIN, ROLE_LEADER],
+    'work_months.create'    => [ROLE_ADMIN],
+    'work_months.edit'      => [ROLE_ADMIN],
     'work_details.manage'   => [ROLE_ADMIN],
     'work_details.view'     => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
+
+    // ── مشتریان ─────────────────────────────────────────────
+    'customers.view'        => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
+    'customers.create'      => [ROLE_ADMIN, ROLE_LEADER],
+    'customers.edit'        => [ROLE_ADMIN, ROLE_LEADER],
+    'customers.delete'      => [ROLE_ADMIN],
 
     // ── سفارش موقت ───────────────────────────────────────────
     'temp_orders.create'    => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
@@ -43,6 +50,7 @@ return [
     'temp_orders.clear'     => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
 
     // ── سفارش نهایی ──────────────────────────────────────────
+    'orders.view'           => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
     'orders.create'         => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
     'orders.confirm'        => [ROLE_ADMIN, ROLE_LEADER],
     'orders.edit_own'       => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
