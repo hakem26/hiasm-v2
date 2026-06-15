@@ -6,36 +6,9 @@ class WorkMonthQuery extends BaseQuery {
     protected string $pk    = 'work_month_id';
 
     public function getAll(): array {
-        // جدول orders رو فقط اگه موجود باشه join کن
-        $db = $this->db;
-        
-        // بررسی وجود جدول orders
-        try {
-            $check = $db->query("SHOW TABLES LIKE 'orders'")->fetch();
-            $ordersExists = !empty($check);
-        } catch (Exception $e) {
-            $ordersExists = false;
-        }
-        
-        if (!$ordersExists) {
-            // اگه جدول orders نیست، فقط work_months
-            return $this->raw("
-                SELECT wm.*, 0 AS partner_count, 0 AS order_count, 0 AS total_sales
-                FROM   work_months wm
-                ORDER  BY wm.start_date DESC
-            ")->fetchAll();
-        }
-
-        // اگه orders موجود باشه
         return $this->raw("
-            SELECT wm.*,
-                   COUNT(DISTINCT wd.partner_id) AS partner_count,
-                   COUNT(DISTINCT o.order_id) AS order_count,
-                   COALESCE(SUM(o.final_amount), 0) AS total_sales
+            SELECT wm.*
             FROM   work_months wm
-            LEFT JOIN work_details wd ON wd.work_month_id = wm.work_month_id
-            LEFT JOIN orders o ON o.work_month_id = wm.work_month_id
-            GROUP  BY wm.work_month_id
             ORDER  BY wm.start_date DESC
         ")->fetchAll();
     }

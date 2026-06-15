@@ -329,7 +329,7 @@ CREATE TABLE `orders` (
   `order_date`     DATE          NOT NULL,
   `note`           VARCHAR(500)  DEFAULT NULL,
   `confirmed_by`   INT UNSIGNED  DEFAULT NULL COMMENT 'تأیید کننده (admin یا leader)',
-  `confirmed_at`   TIMESTAMP     DEFAULT NULL,
+  `confirmed_at`   DATETIME      DEFAULT NULL,
   `created_at`     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`order_id`),
   KEY `fk_ord_work_detail` (`work_detail_id`),
