@@ -5,6 +5,7 @@ class CustomerQuery extends BaseQuery {
     protected string $table = 'customers';
     protected string $pk    = 'customer_id';
 
+    // ساده‌ترین نسخه — فقط customers بدون orders
     public function getAll(bool $onlyActive = true): array {
         $where = $onlyActive ? 'WHERE is_active = 1' : '';
         return $this->raw("

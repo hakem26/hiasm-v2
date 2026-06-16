@@ -38,7 +38,7 @@ return [
 
     // ── مشتریان ─────────────────────────────────────────────
     'customers.view'        => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
-    'customers.create'      => [ROLE_ADMIN, ROLE_LEADER],
+    'customers.create'      => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
     'customers.edit'        => [ROLE_ADMIN, ROLE_LEADER],
     'customers.delete'      => [ROLE_ADMIN],
 

@@ -7,26 +7,34 @@ require_once BASE_PATH . '/core/queries/customers.php';
 $customerQuery = new CustomerQuery();
 
 $id = (int)get('id');
-$customer = $customerQuery->getWithBalance($id);
+$customer = $customerQuery->findById($id);
 if (!$customer) {
     setFlash('error', 'مشتری یافت نشد');
     redirect(BASE_URL . '/modules/customers/list.php');
 }
 
-// سفارش‌های این مشتری
-$db = getDB();
-$orders = $db->prepare("
-    SELECT o.*, wm.title AS work_month_title,
-           COALESCE(SUM(op.amount), 0) AS total_paid
-    FROM   orders o
-    JOIN   work_months wm ON wm.work_month_id = o.work_month_id
-    LEFT JOIN order_payments op ON op.order_id = o.order_id
-    WHERE  o.customer_id = ?
-    GROUP  BY o.order_id
-    ORDER  BY o.order_date DESC
-");
-$orders->execute([$id]);
-$ordersList = $orders->fetchAll();
+// سفارش‌های این مشتری — فقط اگه جدول orders موجود باشه
+$ordersList = [];
+try {
+    $db = getDB();
+    $check = $db->query("SHOW TABLES LIKE 'orders'")->fetch();
+    if ($check) {
+        $orders = $db->prepare("
+            SELECT o.*, wm.title AS work_month_title,
+                   COALESCE(SUM(op.amount), 0) AS total_paid
+            FROM   orders o
+            JOIN   work_months wm ON wm.work_month_id = o.work_month_id
+            LEFT JOIN order_payments op ON op.order_id = o.order_id
+            WHERE  o.customer_id = ?
+            GROUP  BY o.order_id
+            ORDER  BY o.order_date DESC
+        ");
+        $orders->execute([$id]);
+        $ordersList = $orders->fetchAll();
+    }
+} catch (Exception $e) {
+    // اگه خطایی باشد، فقط سفارشات نشون نده
+}
 
 $pageTitle = $customer['customer_name'];
 require_once BASE_PATH . '/includes/header.php';
@@ -73,45 +81,14 @@ require_once BASE_PATH . '/includes/header.php';
     </div>
   </div>
   <div class="col-md-6">
-    <div class="row row-cards">
-      <div class="col-sm-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="text-muted small">تعداد سفارش</div>
-            <div class="h4 num"><?= (int)$customer['order_count'] ?></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="text-muted small">کل خرید</div>
-            <div class="h4 num"><?= number_format((float)$customer['total_orders']) ?></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="text-muted small">کل پرداخت</div>
-            <div class="h4 num"><?= number_format((float)$customer['total_paid']) ?></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="text-muted small">بدهی</div>
-            <div class="h4 num <?= $customer['balance'] > 0 ? 'text-danger' : 'text-success' ?>">
-              <?= number_format((float)$customer['balance']) ?>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="alert alert-info">
+      <i class="ti ti-info-circle me-2"></i>
+      <strong>توجه:</strong> سفارش‌ها و مالیات پس از ثبت سفارش‌های نهایی در دسترس خواهند بود
     </div>
   </div>
 </div>
 
+<?php if (!empty($ordersList)): ?>
 <!-- سفارش‌ها -->
 <div class="card">
   <div class="card-header">
@@ -131,49 +108,44 @@ require_once BASE_PATH . '/includes/header.php';
         </tr>
       </thead>
       <tbody>
-        <?php if (empty($ordersList)): ?>
+        <?php foreach ($ordersList as $o): ?>
           <tr>
-            <td colspan="7" class="text-center text-muted py-4">سفارشی ثبت نشده</td>
+            <td>#<?= $o['order_id'] ?></td>
+            <td><?= e($o['work_month_title']) ?></td>
+            <td class="ltr"><?= toJalali($o['order_date']) ?></td>
+            <td class="text-center num"><?= number_format((float)$o['final_amount']) ?></td>
+            <td class="text-center num"><?= number_format((float)$o['total_paid']) ?></td>
+            <td class="text-center num fw-bold <?= ($o['final_amount'] - $o['total_paid']) > 0 ? 'text-danger' : 'text-success' ?>">
+              <?= number_format((float)$o['final_amount'] - (float)$o['total_paid']) ?>
+            </td>
+            <td class="text-center">
+              <span class="badge <?php
+                switch($o['status']) {
+                  case 'pending': echo 'bg-warning'; break;
+                  case 'confirmed': echo 'bg-info'; break;
+                  case 'shipped': echo 'bg-primary'; break;
+                  case 'delivered': echo 'bg-success'; break;
+                  case 'cancelled': echo 'bg-danger'; break;
+                }
+              ?>">
+                <?php
+                  $labels = [
+                    'pending' => 'در انتظار',
+                    'confirmed' => 'تأیید شده',
+                    'shipped' => 'ارسال شده',
+                    'delivered' => 'تحویل داده شده',
+                    'cancelled' => 'لغو شده'
+                  ];
+                  echo $labels[$o['status']] ?? $o['status'];
+                ?>
+              </span>
+            </td>
           </tr>
-        <?php else: ?>
-          <?php foreach ($ordersList as $o): ?>
-            <tr>
-              <td>#<?= $o['order_id'] ?></td>
-              <td><?= e($o['work_month_title']) ?></td>
-              <td class="ltr"><?= toJalali($o['order_date']) ?></td>
-              <td class="text-center num"><?= number_format((float)$o['final_amount']) ?></td>
-              <td class="text-center num"><?= number_format((float)$o['total_paid']) ?></td>
-              <td class="text-center num fw-bold <?= ($o['final_amount'] - $o['total_paid']) > 0 ? 'text-danger' : 'text-success' ?>">
-                <?= number_format((float)$o['final_amount'] - (float)$o['total_paid']) ?>
-              </td>
-              <td class="text-center">
-                <span class="badge <?php
-                  switch($o['status']) {
-                    case 'pending': echo 'bg-warning'; break;
-                    case 'confirmed': echo 'bg-info'; break;
-                    case 'shipped': echo 'bg-primary'; break;
-                    case 'delivered': echo 'bg-success'; break;
-                    case 'cancelled': echo 'bg-danger'; break;
-                  }
-                ?>">
-                  <?php
-                    $labels = [
-                      'pending' => 'در انتظار',
-                      'confirmed' => 'تأیید شده',
-                      'shipped' => 'ارسال شده',
-                      'delivered' => 'تحویل داده شده',
-                      'cancelled' => 'لغو شده'
-                    ];
-                    echo $labels[$o['status']] ?? $o['status'];
-                  ?>
-                </span>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        <?php endif; ?>
+        <?php endforeach; ?>
       </tbody>
     </table>
   </div>
 </div>
+<?php endif; ?>
 
 <?php require_once BASE_PATH . '/includes/footer.php'; ?>

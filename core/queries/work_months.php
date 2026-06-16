@@ -5,6 +5,7 @@ class WorkMonthQuery extends BaseQuery {
     protected string $table = 'work_months';
     protected string $pk    = 'work_month_id';
 
+    // ساده‌ترین نسخه — فقط work_months بدون هیچ JOIN
     public function getAll(): array {
         return $this->raw("
             SELECT wm.*

@@ -3,20 +3,22 @@ define('HIASM_ENTRY', true);
 require_once __DIR__ . '/../../core/init.php';
 requireLogin('orders.view');
 
-require_once BASE_PATH . '/core/queries/orders.php';
 require_once BASE_PATH . '/core/queries/work_months.php';
+require_once BASE_PATH . '/core/queries/orders.php';
 
-$orderQuery      = new OrderQuery();
-$workMonthQuery  = new WorkMonthQuery();
+$workMonthQuery = new WorkMonthQuery();
+$orderQuery = new OrderQuery();
 
 $workMonthId = (int)get('work_month_id');
-$workDetailId = (int)get('work_detail_id');
-
 $workMonths = $workMonthQuery->getAll();
 $orders = [];
 
 if ($workMonthId > 0) {
-    $orders = $orderQuery->getByWorkMonth($workMonthId, $workDetailId);
+    try {
+        $orders = $orderQuery->getByWorkMonth($workMonthId);
+    } catch (Exception $e) {
+        // اگه خطایی باشد، orders خالی می‌مونه
+    }
 }
 
 $pageTitle = 'سفارش‌ها';
@@ -65,7 +67,7 @@ require_once BASE_PATH . '/includes/header.php';
     <table class="table table-vcenter card-table">
       <thead>
         <tr>
-          <th>شماره سفارش</th>
+          <th>شماره</th>
           <th>مشتری</th>
           <th>تاریخ</th>
           <th class="text-center">مبلغ</th>
@@ -76,7 +78,13 @@ require_once BASE_PATH . '/includes/header.php';
       <tbody>
         <?php if (empty($orders)): ?>
           <tr>
-            <td colspan="6" class="text-center text-muted py-4">سفارشی یافت نشد</td>
+            <td colspan="6" class="text-center text-muted py-4">
+              <?php if ($workMonthId == 0): ?>
+                ابتدا ماه کاری را انتخاب کنید
+              <?php else: ?>
+                سفارشی یافت نشد
+              <?php endif; ?>
+            </td>
           </tr>
         <?php else: ?>
           <?php foreach ($orders as $o): ?>

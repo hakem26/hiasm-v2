@@ -56,6 +56,7 @@ if (isPost()) {
                     'start_date' => $startDate,
                     'end_date'   => $endDate,
                     'is_closed'  => 0,
+                    'created_by' => currentUserId(),
                 ]);
                 setFlash('success', 'ماه کاری ایجاد شد');
             }

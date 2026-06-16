@@ -6,9 +6,8 @@ requireLogin('customers.view');
 require_once BASE_PATH . '/core/queries/customers.php';
 $customerQuery = new CustomerQuery();
 
-$customers = $customerQuery->getAll(false); // نمایش همه (فعال و غیرفعال)
+$customers = $customerQuery->getAll(false);
 $pageTitle = 'مشتریان';
-$apiUrl    = BASE_URL . '/api/customers.php';
 require_once BASE_PATH . '/includes/header.php';
 ?>
 
@@ -47,10 +46,7 @@ require_once BASE_PATH . '/includes/header.php';
         <tr>
           <th>نام مشتری</th>
           <th>تلفن</th>
-          <th class="text-center">سفارش‌ها</th>
-          <th class="text-center">کل خرید</th>
-          <th class="text-center">کل پرداخت</th>
-          <th class="text-center">بدهی</th>
+          <th>شهر</th>
           <th class="text-center">وضعیت</th>
           <th class="text-center">عملیات</th>
         </tr>
@@ -60,12 +56,7 @@ require_once BASE_PATH . '/includes/header.php';
           <tr data-name="<?= e($c['customer_name']) ?>" data-phone="<?= e($c['phone'] ?? '') ?>">
             <td><?= e($c['customer_name']) ?></td>
             <td class="ltr"><?= e($c['phone'] ?? '—') ?></td>
-            <td class="text-center num"><?= (int)$c['order_count'] ?></td>
-            <td class="text-center num"><?= number_format((float)$c['total_orders']) ?></td>
-            <td class="text-center num"><?= number_format((float)$c['total_paid']) ?></td>
-            <td class="text-center num fw-bold <?= $c['balance'] > 0 ? 'text-danger' : 'text-success' ?>">
-              <?= number_format((float)$c['balance']) ?>
-            </td>
+            <td><?= e($c['city'] ?? '—') ?></td>
             <td class="text-center">
               <?= $c['is_active'] ? '<span class="badge bg-success">فعال</span>' : '<span class="badge bg-secondary">غیرفعال</span>' ?>
             </td>
@@ -79,6 +70,13 @@ require_once BASE_PATH . '/includes/header.php';
                  class="btn btn-sm btn-icon btn-ghost-primary" title="ویرایش">
                 <i class="ti ti-edit"></i>
               </a>
+              <?php endif; ?>
+              <?php if (hasPermission('customers.delete')): ?>
+              <button class="btn btn-sm btn-icon btn-ghost-danger" 
+                      onclick="deleteCustomer(<?= $c['customer_id'] ?>, '<?= e($c['customer_name']) ?>')"
+                      title="حذف">
+                <i class="ti ti-trash"></i>
+              </button>
               <?php endif; ?>
             </td>
           </tr>
@@ -106,4 +104,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+function deleteCustomer(id, name) {
+  if (!confirm(`آیا مطمئن‌اید می‌خواهید "${name}" را حذف کنید؟\n\nاگر سفارشی برای این مشتری ثبت شده باشد، حذف ممکن نیست.`)) {
+    return;
+  }
+
+  var btn = event.target.closest('button');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+  hiasm.post('<?= BASE_URL ?>/api/customers.php', {
+    action: 'delete',
+    customer_id: id
+  }).then(function(res) {
+    hiasm.toast(res.message, res.success ? 'success' : 'error');
+    if (res.success) {
+      setTimeout(function() { location.reload(); }, 800);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-trash"></i>';
+    }
+  });
+}
 </script>
