@@ -1,44 +1,79 @@
 <?php
 define('HIASM_ENTRY', true);
+
+ob_start();
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+
 require_once __DIR__ . '/../core/init.php';
-requireAuth('work_months.delete');
 
-require_once BASE_PATH . '/core/queries/work_months.php';
-$workMonthQuery = new WorkMonthQuery();
+header('Content-Type: application/json; charset=utf-8');
 
-$action = post('action') ?: get('action');
-
-if ($action === 'delete') {
-    requirePost();
+try {
+    Response::requireAuth();
     
-    $workMonthId = (int)post('work_month_id');
-    $wm = $workMonthQuery->findById($workMonthId);
+    require_once BASE_PATH . '/core/queries/work_months.php';
+    $workMonthQuery = new WorkMonthQuery();
     
-    if (!$wm) {
-        Response::error('ماه کاری یافت نشد');
-    }
+    $action = post('action') ?: get('action');
     
-    if ($wm['is_closed']) {
-        Response::error('ماه کاری بسته شده‌ است — نمی‌تونید حذف کنید');
-    }
-    
-    // بررسی سفارش
-    try {
-        $db = getDB();
-        $check = $db->prepare("SELECT COUNT(*) FROM orders WHERE work_month_id = ?");
-        $check->execute([$workMonthId]);
-        $count = (int)$check->fetchColumn();
+    if ($action === 'delete') {
+        Response::requirePost();
+        Response::requireAuth('work_months.delete');
         
-        if ($count > 0) {
-            Response::error("در این ماه $count سفارش ثبت شده‌ است — نمی‌تونید حذف کنید");
+        $workMonthId = (int)post('work_month_id');
+        if (!$workMonthId) {
+            ob_end_clean();
+            Response::error('شناسه نامعتبر');
         }
-    } catch (Exception $e) {
-        // جدول موجود نیست، می‌تونیم حذف کنیم
+        
+        $wm = $workMonthQuery->findById($workMonthId);
+        if (!$wm) {
+            ob_end_clean();
+            Response::error('ماه کاری یافت نشد');
+        }
+        
+        if ($wm['is_closed']) {
+            ob_end_clean();
+            Response::error('ماه کاری بسته شده — نمی‌تونید حذف کنید');
+        }
+        
+        // بررسی سفارش
+        $db = getDB();
+        $orderCount = 0;
+        try {
+            $check = $db->prepare("SELECT COUNT(*) FROM orders WHERE work_month_id = ?");
+            $check->execute([$workMonthId]);
+            $orderCount = (int)$check->fetchColumn();
+        } catch (PDOException $e) {
+            $orderCount = 0;
+        }
+        
+        if ($orderCount > 0) {
+            ob_end_clean();
+            Response::error("در این ماه $orderCount سفارش ثبت شده — نمی‌تونید حذف کنید");
+        }
+        
+        // حذف
+        $deleted = $workMonthQuery->delete($workMonthId);
+        ob_end_clean();
+        
+        if ($deleted) {
+            Response::success('ماه کاری حذف شد');
+        } else {
+            Response::error('خطا در حذف');
+        }
     }
     
-    // حذف
-    $workMonthQuery->delete($workMonthId);
-    Response::success('ماه کاری حذف شد');
+    ob_end_clean();
+    Response::error('عملیات نامشخص');
+    
+} catch (Throwable $e) {
+    ob_end_clean();
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => false,
+        'message' => 'خطای سرور: ' . $e->getMessage()
+    ]);
+    exit;
 }
-
-Response::error('عملیات نامشخص');

@@ -33,6 +33,7 @@ return [
     'work_months.view'      => [ROLE_ADMIN, ROLE_LEADER],
     'work_months.create'    => [ROLE_ADMIN],
     'work_months.edit'      => [ROLE_ADMIN],
+    'work_months.delete'    => [ROLE_ADMIN],
     'work_details.manage'   => [ROLE_ADMIN],
     'work_details.view'     => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
 
