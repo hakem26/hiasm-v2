@@ -52,9 +52,9 @@ require_once BASE_PATH . '/includes/header.php';
             <tr>
               <td class="ltr"><?= toJalali($wm['start_date']) ?></td>
               <td class="ltr"><?= toJalali($wm['end_date']) ?></td>
-              <td class="text-center num"><?= $wm['partner_count'] ?></td>
-              <td class="text-center num"><?= $wm['order_count'] ?></td>
-              <td class="text-center num"><?= number_format((float)$wm['total_sales']) ?></td>
+              <td class="text-center num"><?= ($wm['partner_count'] ?? 0) ?></td>
+              <td class="text-center num"><?= ($wm['order_count'] ?? 0) ?></td>
+              <td class="text-center num"><?= number_format((float)($wm['total_sales'] ?? 0)) ?></td>
               <td class="text-center">
                 <?php if ($wm['is_closed']): ?>
                   <span class="badge bg-secondary">بسته</span>
@@ -73,6 +73,13 @@ require_once BASE_PATH . '/includes/header.php';
                   <i class="ti ti-edit"></i>
                 </a>
                 <?php endif; ?>
+                <?php if (hasPermission('work_months.delete') && !$wm['is_closed']): ?>
+                <button class="btn btn-sm btn-icon btn-ghost-danger"
+                        onclick="deleteWorkMonth(<?= $wm['work_month_id'] ?>, '<?= e($wm['title']) ?>')"
+                        title="حذف">
+                  <i class="ti ti-trash"></i>
+                </button>
+                <?php endif; ?>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -83,3 +90,28 @@ require_once BASE_PATH . '/includes/header.php';
 </div>
 
 <?php require_once BASE_PATH . '/includes/footer.php'; ?>
+
+<script>
+function deleteWorkMonth(id, title) {
+  if (!confirm(`آیا مطمئن‌اید می‌خواهید "${title}" را حذف کنید؟\n\nاگر سفارش برای این ماه ثبت شده باشد، حذف ممکن نیست.`)) {
+    return;
+  }
+
+  var btn = event.target.closest('button');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+  hiasm.post('<?= BASE_URL ?>/api/work_months.php', {
+    action: 'delete',
+    work_month_id: id
+  }).then(function(res) {
+    hiasm.toast(res.message, res.success ? 'success' : 'error');
+    if (res.success) {
+      setTimeout(function() { location.reload(); }, 800);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-trash"></i>';
+    }
+  });
+}
+</script>

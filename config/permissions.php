@@ -39,8 +39,8 @@ return [
     // ── مشتریان ─────────────────────────────────────────────
     'customers.view'        => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
     'customers.create'      => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
-    'customers.edit'        => [ROLE_ADMIN, ROLE_LEADER],
-    'customers.delete'      => [ROLE_ADMIN],
+    'customers.edit'        => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
+    'customers.delete'      => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
 
     // ── سفارش موقت ───────────────────────────────────────────
     'temp_orders.create'    => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
