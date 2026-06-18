@@ -19,6 +19,18 @@ function formatMoney(float|int $amount): string {
     return formatNumber($amount) . ' تومان';
 }
 
+// ── نرمال‌سازی حروف عربی به فارسی ───────────────────────────
+// ك عربی → ک فارسی | ي عربی → ی فارسی
+// رفع باگ معروف: جستجو/مقایسه متن فارسی که با کیبورد عربی نوشته شده
+function normalizePersian(string $str): string {
+    $arabic  = ['ك', 'ي', 'ة', 'ٱ', 'أ', 'إ', 'آ'];
+    $persian = ['ک', 'ی', 'ه', 'ا', 'ا', 'ا', 'ا'];
+    $str = str_replace($arabic, $persian, $str);
+    // حذف فاصله‌های اضافی و تبدیل نیم‌فاصله به فاصله برای جستجو
+    $str = str_replace("\xE2\x80\x8C", ' ', $str); // ZWNJ
+    return trim(preg_replace('/\s+/', ' ', $str));
+}
+
 // ── تبدیل اعداد فارسی/عربی به انگلیسی ───────────────────────
 function toEnglishDigits(string $str): string {
     $persian = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
@@ -49,6 +61,16 @@ function toJalali(string $date, string $format = 'Y/m/d'): string {
 function jalaliDayName(string $date): string {
     $timestamp = strtotime($date);
     return jdate('l', $timestamp);
+}
+
+// ── عدد روز هفته شمسی: 0=شنبه, 1=یک‌شنبه, ... 6=جمعه ─────────
+function jalaliDayOfWeek(string $date): int {
+    $timestamp = strtotime($date);
+    // jdate('N', ...) در jdf.php: 1=شنبه ... 7=جمعه (مشابه ISO ولی با مبدا شنبه)
+    // برای اطمینان از خروجی jdf.php، با w میلادی محاسبه می‌کنیم:
+    // w میلادی: 0=یکشنبه ... 6=شنبه  → نگاشت به 0=شنبه ... 6=جمعه
+    $w = (int)date('w', $timestamp); // 0=Sun ... 6=Sat
+    return ($w + 1) % 7; // 0=Sat, 1=Sun, ... 6=Fri
 }
 
 // ── تبدیل تاریخ شمسی به میلادی ──────────────────────────────

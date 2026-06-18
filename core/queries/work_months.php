@@ -23,6 +23,24 @@ class WorkMonthQuery extends BaseQuery {
         ")->fetch();
     }
 
+    // ── آخرین ماه کاری ثبت‌شده (بر اساس تاریخ شروع) — برای پیش‌فرض فیلتر ──
+    public function getLatest(): ?array {
+        return $this->raw("
+            SELECT * FROM work_months
+            ORDER  BY start_date DESC
+            LIMIT  1
+        ")->fetch() ?: null;
+    }
+
+    public function findContaining(string $date): ?array {
+        return $this->raw("
+            SELECT * FROM work_months
+            WHERE  ? BETWEEN start_date AND end_date
+            ORDER  BY start_date DESC
+            LIMIT  1
+        ", [$date])->fetch() ?: null;
+    }
+
     public function getWithDetails(int $workMonthId): ?array {
         $wm = $this->findById($workMonthId);
         if (!$wm) return null;

@@ -25,17 +25,18 @@ return [
     'inventory.receive'     => [ROLE_LEADER],           // دریافت از ادمین
     'inventory.adjust'      => [ROLE_ADMIN],            // تعدیل دستی
 
-    // ── شریک‌ها ───────────────────────────────────────────────
+    // ── شریک‌ها (جفت‌های کاری) ───────────────────────────────
     'partners.manage'       => [ROLE_ADMIN],
-    'partners.view'         => [ROLE_ADMIN, ROLE_LEADER],
+    'partners.view'         => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
 
     // ── ماه‌های کاری ─────────────────────────────────────────
-    'work_months.view'      => [ROLE_ADMIN, ROLE_LEADER],
+    'work_months.view'      => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
     'work_months.create'    => [ROLE_ADMIN],
     'work_months.edit'      => [ROLE_ADMIN],
     'work_months.delete'    => [ROLE_ADMIN],
     'work_details.manage'   => [ROLE_ADMIN],
     'work_details.view'     => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
+    'work_details.set_car_owner' => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],
 
     // ── مشتریان ─────────────────────────────────────────────
     'customers.view'        => [ROLE_ADMIN, ROLE_LEADER, ROLE_SELLER],

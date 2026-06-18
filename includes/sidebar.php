@@ -53,6 +53,17 @@ function isActive(string $path): string {
         </li>
         <?php endif; ?>
 
+        <?php if (hasPermission('work_details.view')): ?>
+        <!-- ── اطلاعات کار ──────────────────────────────── -->
+        <li class="nav-item">
+          <a class="nav-link <?= isActive('/modules/work_details') ?>"
+             href="<?= BASE_URL ?>/modules/work_details/list.php">
+            <span class="nav-link-icon"><i class="ti ti-clipboard-list"></i></span>
+            <span class="nav-link-title">اطلاعات کار</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <?php if (hasPermission('customers.view')): ?>
         <!-- ── مشتریان ──────────────────────────────────── -->
         <li class="nav-item">

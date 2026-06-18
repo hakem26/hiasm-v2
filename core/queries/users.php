@@ -23,6 +23,16 @@ class UserQuery extends BaseQuery {
         ")->fetchAll();
     }
 
+    // ── کاربران فعال (برای انتخاب در فرم‌ها مثل جفت کاری) ────
+    public function getAllActive(): array {
+        return $this->raw("
+            SELECT user_id, full_name, username
+            FROM   users
+            WHERE  is_active = 1
+            ORDER  BY full_name ASC
+        ")->fetchAll();
+    }
+
     // ── یک کاربر با نقش ──────────────────────────────────────
     public function getByIdWithRole(int $id): ?array {
         $row = $this->raw("
