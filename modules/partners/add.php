@@ -59,8 +59,10 @@ if (isPost()) {
     $sellerId = (int)post('seller_id');
     $isRotational = post('is_rotational') ? 1 : 0;
     $rotationStart = post('rotation_start_date');
-    $days = post('working_days') ?: [];
+
+    $days = $_POST['working_days'] ?? [];
     if (!is_array($days)) $days = [];
+    $days = array_map('intval', $days);
 
     if ($leaderId === $sellerId) {
         $errors['seller_id'] = 'همکار ۱ و همکار ۲ نمی‌توانند یک نفر باشند';
@@ -99,6 +101,7 @@ if (isPost()) {
         redirect(BASE_URL . '/modules/partners/list.php?work_month_id=' . $workMonthId);
     } else {
         $errors = array_merge($v->errors(), $errors);
+        $scheduleDays = $days; // حفظ انتخاب چک‌باکس‌ها هنگام نمایش مجدد فرم با خطا
     }
 }
 
