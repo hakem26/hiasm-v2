@@ -228,3 +228,79 @@ hiasm.productSearch = function(inputEl, onSelect, opts) {
     destroy: function() { box.remove(); }
   };
 };
+
+// ── Customer Autocomplete — مشابه hiasm.productSearch ────────────
+// اضافه کن به انتهای assets/js/app.js
+hiasm.customerSearch = function(inputEl, onSelect, opts) {
+  opts = opts || {};
+  var apiUrl = opts.apiUrl || (window.HIASM_BASE_URL + '/api/customers.php');
+  var minLen = opts.minLen || 2;
+  var timer  = null;
+
+  var box = document.createElement('div');
+  box.className = 'hiasm-autocomplete-box list-group shadow-sm';
+  box.style.display = 'none';
+  document.body.appendChild(box);
+
+  function position() {
+    var r = inputEl.getBoundingClientRect();
+    box.style.cssText = 'position:fixed;z-index:99999;left:' + r.left + 'px;top:' +
+                        (r.bottom + 2) + 'px;width:' + r.width + 'px;';
+  }
+
+  function hide() { box.style.display = 'none'; }
+  function show() { position(); box.style.display = 'block'; }
+
+  function renderResults(items) {
+    box.innerHTML = '';
+    if (items && items.length) {
+      items.forEach(function(c) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'list-group-item list-group-item-action';
+        item.innerHTML = c.customer_name +
+          (c.phone ? '<small class="text-muted ms-2 ltr">' + c.phone + '</small>' : '');
+        item.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          inputEl.value = c.customer_name;
+          inputEl.dataset.customerId = c.customer_id;
+          hide();
+          if (onSelect) onSelect(c);
+        });
+        box.appendChild(item);
+      });
+    } else {
+      var empty = document.createElement('div');
+      empty.className = 'list-group-item text-muted small';
+      empty.textContent = 'مشتری یافت نشد';
+      box.appendChild(empty);
+    }
+    show();
+  }
+
+  inputEl.addEventListener('input', function() {
+    inputEl.dataset.customerId = '';
+    var term = this.value.trim();
+    clearTimeout(timer);
+    if (term.length < minLen) { hide(); return; }
+    timer = setTimeout(function() {
+      hiasm.get(apiUrl, { action: 'search', q: term }).then(function(res) {
+        renderResults(res.success ? res.data : []);
+      });
+    }, 200);
+  });
+
+  inputEl.addEventListener('focus', function() {
+    if (box.children.length > 0 && this.value.trim().length >= minLen) show();
+  });
+
+  document.addEventListener('mousedown', function(e) {
+    if (e.target !== inputEl && !box.contains(e.target)) hide();
+  });
+
+  window.addEventListener('scroll', function() {
+    if (box.style.display !== 'none') position();
+  }, true);
+
+  return { hide: hide, destroy: function() { box.remove(); } };
+};
