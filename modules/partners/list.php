@@ -36,6 +36,9 @@ require_once BASE_PATH . '/includes/header.php';
     </div>
     <?php if (hasPermission('partners.manage') && $currentWorkMonth && !$currentWorkMonth['is_closed']): ?>
     <div class="col-auto">
+      <button type="button" class="btn btn-outline-secondary" id="btn-copy-prev">
+        <i class="ti ti-copy me-1"></i>انتقال از ماه قبل
+      </button>
       <a href="<?= BASE_URL ?>/modules/partners/add.php?work_month_id=<?= $workMonthId ?>" class="btn btn-primary">
         <i class="ti ti-plus me-1"></i>جفت کاری جدید
       </a>
@@ -122,17 +125,42 @@ require_once BASE_PATH . '/includes/header.php';
 <?php require_once BASE_PATH . '/includes/footer.php'; ?>
 
 <script>
-function deletePartner(id, name) {
-  if (!confirm(`آیا مطمئن‌اید می‌خواهید جفت "${name}" را حذف کنید؟`)) return;
+var PARTNERS_API   = '<?= BASE_URL ?>/api/partners.php';
+var CURRENT_WM_ID  = <?= (int)$workMonthId ?>;
 
+document.addEventListener('DOMContentLoaded', function() {
+  var copyBtn = document.getElementById('btn-copy-prev');
+  if (!copyBtn) return;
+
+  copyBtn.addEventListener('click', function() {
+    if (!CURRENT_WM_ID) {
+      hiasm.toast('ابتدا ماه کاری را انتخاب کنید', 'error');
+      return;
+    }
+    if (!confirm('جفت‌های کاری ماه قبل به این ماه منتقل شوند؟ جفت‌های تکراری نادیده گرفته می‌شوند.')) return;
+
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>در حال انتقال...';
+
+    hiasm.post(PARTNERS_API, {
+      action:        'copy_from_prev',
+      work_month_id: CURRENT_WM_ID,
+    }).then(function(res) {
+      hiasm.toast(res.message, res.success ? 'success' : 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-copy me-1"></i>انتقال از ماه قبل';
+      if (res.success) setTimeout(function() { location.reload(); }, 800);
+    });
+  });
+});
+
+function deletePartner(id, name) {
+  if (!confirm('آیا مطمئن‌اید می‌خواهید جفت "' + name + '" را حذف کنید؟')) return;
   var btn = event.target.closest('button');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-  hiasm.post('<?= BASE_URL ?>/api/partners.php', {
-    action: 'delete',
-    partner_id: id
-  }).then(function(res) {
+  hiasm.post(PARTNERS_API, { action: 'delete', partner_id: id }).then(function(res) {
     hiasm.toast(res.message, res.success ? 'success' : 'error');
     if (res.success) {
       setTimeout(function() { location.reload(); }, 800);

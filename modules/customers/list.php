@@ -6,7 +6,9 @@ requireLogin('customers.view');
 require_once BASE_PATH . '/core/queries/customers.php';
 $customerQuery = new CustomerQuery();
 
-$customers = $customerQuery->getAll(false);
+$isAdmin   = hasRole(ROLE_ADMIN);
+$myId      = currentUserId();
+$customers = $customerQuery->getVisible($myId, $isAdmin);
 $pageTitle = 'مشتریان';
 require_once BASE_PATH . '/includes/header.php';
 ?>
