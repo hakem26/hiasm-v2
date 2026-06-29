@@ -96,32 +96,40 @@ require_once BASE_PATH . '/includes/header.php';
   </div>
 </div>
 
-<!-- Modal تبدیل -->
-<div class="modal modal-blur fade" id="convert-modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-sm" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">تبدیل سفارش موقت به دائم</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p id="convert-modal-info" class="text-muted small mb-3"></p>
+<!-- Overlay تبدیل (بدون Bootstrap JS) -->
+<style>
+#convert-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.5); align-items: center; justify-content: center;
+}
+#convert-overlay.active { display: flex; }
+#convert-box {
+  background: #fff; border-radius: 8px; padding: 24px; width: 360px;
+  max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+</style>
 
-        <div class="mb-3">
-          <label class="form-label required">تاریخ روز کاری</label>
-          <input type="text" id="modal-convert-date" class="form-control"
-                 data-jdp autocomplete="off" placeholder="مثال: 1405/01/15">
-          <div class="form-text">تاریخی که این فروش در آن روز اتفاق افتاده</div>
-        </div>
-
-        <div id="modal-wd-preview" class="d-none mb-2"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-        <button type="button" class="btn btn-success" id="btn-do-convert" disabled>
-          <i class="ti ti-transfer me-1"></i>تبدیل به سفارش دائم
-        </button>
-      </div>
+<div id="convert-overlay">
+  <div id="convert-box">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">تبدیل سفارش موقت به دائم</h5>
+      <button type="button" class="btn btn-sm btn-ghost-secondary" onclick="closeConvertModal()">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <p id="convert-modal-info" class="text-muted small mb-3"></p>
+    <div class="mb-3">
+      <label class="form-label required">تاریخ روز کاری</label>
+      <input type="text" id="modal-convert-date" class="form-control"
+             data-jdp autocomplete="off" placeholder="مثال: 1405/01/15">
+      <div class="form-text">تاریخی که این فروش در آن روز اتفاق افتاده</div>
+    </div>
+    <div id="modal-wd-preview" class="d-none mb-3"></div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-secondary flex-fill" onclick="closeConvertModal()">انصراف</button>
+      <button type="button" class="btn btn-success flex-fill" id="btn-do-convert" disabled>
+        <i class="ti ti-transfer me-1"></i>تبدیل
+      </button>
     </div>
   </div>
 </div>
@@ -132,6 +140,11 @@ require_once BASE_PATH . '/includes/header.php';
 var TEMP_API  = '<?= BASE_URL ?>/api/temp_orders.php';
 var ORDER_URL = '<?= BASE_URL ?>/modules/orders/view.php';
 var currentTempId = null;
+
+// بستن modal با کلیک بیرون از box
+document.getElementById('convert-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeConvertModal();
+});
 
 function openConvertModal(tempId, customerName, invoiceDate) {
   currentTempId = tempId;
@@ -145,13 +158,15 @@ function openConvertModal(tempId, customerName, invoiceDate) {
   document.getElementById('modal-wd-preview').className = 'd-none mb-2';
   document.getElementById('btn-do-convert').disabled = true;
 
-  var modal = new bootstrap.Modal(document.getElementById('convert-modal'));
-  modal.show();
+  document.getElementById('convert-overlay').classList.add('active');
+  setTimeout(function() {
+    document.getElementById('modal-convert-date').focus();
+  }, 100);
+}
 
-  // focus روی input تاریخ بعد از باز شدن modal
-  document.getElementById('convert-modal').addEventListener('shown.bs.modal', function() {
-    dateInput.focus();
-  }, { once: true });
+function closeConvertModal() {
+  document.getElementById('convert-overlay').classList.remove('active');
+  currentTempId = null;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -209,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
       btn.disabled = false;
       btn.innerHTML = '<i class="ti ti-transfer me-1"></i>تبدیل به سفارش دائم';
       if (res.success) {
-        bootstrap.Modal.getInstance(document.getElementById('convert-modal')).hide();
+        closeConvertModal();
         setTimeout(function() {
           window.location.href = ORDER_URL + '?id=' + res.data.order_id;
         }, 800);

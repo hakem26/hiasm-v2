@@ -97,4 +97,83 @@ class CustomerQuery extends BaseQuery {
             LIMIT  1
         ", [$term, $userId, $userId, $userId, $userId])->fetchAll();
     }
+
+    // ── مشتریان قابل مشاهده با تگ نمایشی ────────────────────────
+    // تگ‌ها:
+    //   mine       = مشتری خودم (من ثبتش کردم)
+    //   coworker:X = مشتری همکارم X (از سفارش مشترک)
+    public function getVisibleWithTag(int $userId): array {
+        // مشتریانی که این کاربر خودش ثبت کرده (از orders یا temp_orders)
+        $mine = $this->raw("
+            SELECT DISTINCT c.customer_id
+            FROM   customers c
+            WHERE  c.is_active = 1
+              AND  c.customer_id IN (
+                SELECT o.customer_id FROM orders o WHERE o.created_by = ?
+                UNION
+                SELECT t.customer_id FROM temp_orders t WHERE t.created_by = ?
+              )
+        ", [$userId, $userId])->fetchAll(PDO::FETCH_COLUMN);
+
+        // مشتریانی از سفارشات مشترک با همکار
+        $sharedRows = $this->raw("
+            SELECT DISTINCT c.customer_id,
+                   CASE
+                     WHEN wd.effective_leader_id = ? THEN us.full_name
+                     ELSE ul.full_name
+                   END AS coworker_name
+            FROM   customers c
+            JOIN   orders o ON o.customer_id = c.customer_id
+            JOIN   work_details wd ON wd.work_detail_id = o.work_detail_id
+            JOIN   users ul ON ul.user_id = wd.effective_leader_id
+            LEFT JOIN users us ON us.user_id = wd.effective_seller_id
+            WHERE  c.is_active = 1
+              AND  (wd.effective_leader_id = ? OR wd.effective_seller_id = ?)
+              AND  c.customer_id NOT IN (
+                SELECT o2.customer_id FROM orders o2 WHERE o2.created_by = ?
+                UNION
+                SELECT t2.customer_id FROM temp_orders t2 WHERE t2.created_by = ?
+              )
+        ", [$userId, $userId, $userId, $userId, $userId])->fetchAll();
+
+        // ساختن map از shared
+        $sharedMap = [];
+        foreach ($sharedRows as $row) {
+            $sharedMap[$row['customer_id']] = $row['coworker_name'];
+        }
+
+        // گرفتن همه مشتریان قابل مشاهده
+        $allIds = array_unique(array_merge(
+            $mine,
+            array_column($sharedRows, 'customer_id')
+        ));
+
+        if (empty($allIds)) return [];
+
+        $placeholders = implode(',', array_fill(0, count($allIds), '?'));
+        $customers = $this->raw("
+            SELECT * FROM customers
+            WHERE  customer_id IN ($placeholders)
+            ORDER  BY customer_name ASC
+        ", $allIds)->fetchAll();
+
+        // اضافه کردن تگ به هر مشتری
+        foreach ($customers as &$c) {
+            if (in_array($c['customer_id'], $mine)) {
+                $c['visibility_tag']   = 'mine';
+                $c['visibility_label'] = 'مشتری خودم';
+                $c['visibility_color'] = 'primary';
+            } elseif (isset($sharedMap[$c['customer_id']])) {
+                $c['visibility_tag']   = 'coworker';
+                $c['visibility_label'] = 'مشتری همکار: ' . $sharedMap[$c['customer_id']];
+                $c['visibility_color'] = 'info';
+            } else {
+                $c['visibility_tag']   = 'mine';
+                $c['visibility_label'] = 'مشتری خودم';
+                $c['visibility_color'] = 'primary';
+            }
+        }
+
+        return $customers;
+    }
 }

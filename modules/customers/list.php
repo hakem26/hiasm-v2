@@ -8,7 +8,10 @@ $customerQuery = new CustomerQuery();
 
 $isAdmin   = hasRole(ROLE_ADMIN);
 $myId      = currentUserId();
-$customers = $customerQuery->getVisible($myId, $isAdmin);
+// ادمین همه را می‌بیند، بقیه فقط مشتریان خود + همکار
+$customers = $isAdmin
+    ? $customerQuery->getAll(false)
+    : $customerQuery->getVisibleWithTag($myId);
 $pageTitle = 'مشتریان';
 require_once BASE_PATH . '/includes/header.php';
 ?>
@@ -49,6 +52,7 @@ require_once BASE_PATH . '/includes/header.php';
           <th>نام مشتری</th>
           <th>تلفن</th>
           <th>شهر</th>
+          <th class="text-center">رابطه</th>
           <th class="text-center">وضعیت</th>
           <th class="text-center">عملیات</th>
         </tr>
@@ -59,6 +63,15 @@ require_once BASE_PATH . '/includes/header.php';
             <td><?= e($c['customer_name']) ?></td>
             <td class="ltr"><?= e($c['phone'] ?? '—') ?></td>
             <td><?= e($c['city'] ?? '—') ?></td>
+            <td class="text-center">
+              <?php if (isset($c['visibility_label'])): ?>
+                <span class="badge bg-<?= $c['visibility_color'] ?> text-wrap">
+                  <?= e($c['visibility_label']) ?>
+                </span>
+              <?php else: ?>
+                <span class="badge bg-secondary">همه</span>
+              <?php endif; ?>
+            </td>
             <td class="text-center">
               <?= $c['is_active'] ? '<span class="badge bg-success">فعال</span>' : '<span class="badge bg-secondary">غیرفعال</span>' ?>
             </td>
