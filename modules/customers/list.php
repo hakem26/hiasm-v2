@@ -10,7 +10,7 @@ $isAdmin   = hasRole(ROLE_ADMIN);
 $myId      = currentUserId();
 // ادمین همه را می‌بیند، بقیه فقط مشتریان خود + همکار
 $customers = $isAdmin
-    ? $customerQuery->getAll(false)
+    ? $customerQuery->getAllWithCreator()
     : $customerQuery->getVisibleWithTag($myId);
 $pageTitle = 'مشتریان';
 require_once BASE_PATH . '/includes/header.php';

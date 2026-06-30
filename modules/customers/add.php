@@ -41,7 +41,7 @@ if (isPost()) {
         if ($isEdit) {
             $customerQuery->update($id, [
                 'customer_name' => $v->get('customer_name'),
-                'phone'         => $v->get('phone'),
+                'phone'         => (post('phone') !== '' ? post('phone') : null),
                 'address'       => post('address'),
                 'city'          => post('city'),
                 'notes'         => post('notes'),
@@ -50,11 +50,12 @@ if (isPost()) {
         } else {
             $customerQuery->insert([
                 'customer_name' => $v->get('customer_name'),
-                'phone'         => $v->get('phone'),
+                'phone'         => (post('phone') !== '' ? post('phone') : null),
                 'address'       => post('address'),
                 'city'          => post('city'),
                 'notes'         => post('notes'),
                 'is_active'     => 1,
+                'created_by'    => currentUserId(),
             ]);
             setFlash('success', 'مشتری ایجاد شد');
         }

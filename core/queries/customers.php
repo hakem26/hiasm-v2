@@ -108,12 +108,15 @@ class CustomerQuery extends BaseQuery {
             SELECT DISTINCT c.customer_id
             FROM   customers c
             WHERE  c.is_active = 1
-              AND  c.customer_id IN (
-                SELECT o.customer_id FROM orders o WHERE o.created_by = ?
-                UNION
-                SELECT t.customer_id FROM temp_orders t WHERE t.created_by = ?
+              AND  (
+                c.created_by = ?
+                OR c.customer_id IN (
+                    SELECT o.customer_id FROM orders o WHERE o.created_by = ?
+                    UNION
+                    SELECT t.customer_id FROM temp_orders t WHERE t.created_by = ?
+                )
               )
-        ", [$userId, $userId])->fetchAll(PDO::FETCH_COLUMN);
+        ", [$userId, $userId, $userId])->fetchAll(PDO::FETCH_COLUMN);
 
         // مشتریانی از سفارشات مشترک با همکار
         $sharedRows = $this->raw("
@@ -175,5 +178,23 @@ class CustomerQuery extends BaseQuery {
         }
 
         return $customers;
+    }
+
+    // ── همه مشتریان با نام سازنده (برای ادمین) ──────────────────
+    public function getAllWithCreator(): array {
+        $rows = $this->raw("
+            SELECT c.*, u.full_name AS created_by_name
+            FROM   customers c
+            LEFT JOIN users u ON u.user_id = c.created_by
+            WHERE  c.is_active = 1
+            ORDER  BY c.customer_name ASC
+        ")->fetchAll();
+
+        foreach ($rows as &$r) {
+            $r['visibility_tag']   = 'admin';
+            $r['visibility_label'] = $r['created_by_name'] ? ('ثبت توسط: ' . $r['created_by_name']) : 'نامشخص';
+            $r['visibility_color'] = 'secondary';
+        }
+        return $rows;
     }
 }
