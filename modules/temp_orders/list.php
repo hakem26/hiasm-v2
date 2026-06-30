@@ -99,9 +99,11 @@ require_once BASE_PATH . '/includes/header.php';
 <!-- Overlay تبدیل (بدون Bootstrap JS) -->
 <style>
 #convert-overlay {
-  display: none; position: fixed; inset: 0; z-index: 9999;
+  display: none; position: fixed; inset: 0; z-index: 99998;
   background: rgba(0,0,0,.5); align-items: center; justify-content: center;
 }
+/* دیت‌پیکر باید بالاتر از مودال باشه */
+#jalaliDatepickerDiv { z-index: 999999 !important; }
 #convert-overlay.active { display: flex; }
 #convert-box {
   background: #fff; border-radius: 8px; padding: 24px; width: 360px;
