@@ -7,31 +7,31 @@ require_once BASE_PATH . '/core/queries/work_months.php';
 require_once BASE_PATH . '/core/queries/orders.php';
 
 $workMonthQuery = new WorkMonthQuery();
-$orderQuery     = new OrderQuery();
-$myId           = currentUserId();
-$isAdmin        = hasRole(ROLE_ADMIN);
+$orderQuery = new OrderQuery();
+$myId = currentUserId();
+$isAdmin = hasRole(ROLE_ADMIN);
 
 $workMonths = $workMonthQuery->getAll();
 
 // پیش‌فرض: آخرین ماه کاری
-$workMonthId = (int)get('work_month_id');
+$workMonthId = (int) get('work_month_id');
 if ($workMonthId === 0) {
-    $latest      = $workMonthQuery->getLatest();
-    $workMonthId = $latest ? (int)$latest['work_month_id'] : 0;
+  $latest = $workMonthQuery->getLatest();
+  $workMonthId = $latest ? (int) $latest['work_month_id'] : 0;
 }
 
 // فیلتر کاربر — ادمین همه رو می‌بینه
-$filterUserId = $isAdmin ? (int)get('user_id') : 0;
+$filterUserId = $isAdmin ? (int) get('user_id') : 0;
 
-$orders  = $workMonthId ? $orderQuery->getByWorkMonth($workMonthId, $filterUserId) : [];
+$orders = $workMonthId ? $orderQuery->getByWorkMonth($workMonthId, $filterUserId) : [];
 $summary = $workMonthId ? $orderQuery->getTotalByMonth($workMonthId) : null;
 
 $statusLabels = [
-    'pending'   => ['label' => 'در انتظار',        'color' => 'warning'],
-    'confirmed' => ['label' => 'تأیید شده',         'color' => 'info'],
-    'shipped'   => ['label' => 'ارسال شده',         'color' => 'primary'],
-    'delivered' => ['label' => 'تحویل داده شده',    'color' => 'success'],
-    'cancelled' => ['label' => 'لغو شده',           'color' => 'danger'],
+  'pending' => ['label' => 'در انتظار', 'color' => 'warning'],
+  'confirmed' => ['label' => 'تأیید شده', 'color' => 'info'],
+  'shipped' => ['label' => 'ارسال شده', 'color' => 'primary'],
+  'delivered' => ['label' => 'تحویل داده شده', 'color' => 'success'],
+  'cancelled' => ['label' => 'لغو شده', 'color' => 'danger'],
 ];
 
 $pageTitle = 'سفارش‌های دائم';
@@ -46,43 +46,43 @@ require_once BASE_PATH . '/includes/header.php';
       </h2>
     </div>
     <?php if (hasPermission('orders.create')): ?>
-    <div class="col-auto">
-      <a href="<?= BASE_URL ?>/modules/orders/add.php" class="btn btn-primary">
-        <i class="ti ti-plus me-1"></i>سفارش جدید
-      </a>
-    </div>
+      <div class="col-auto">
+        <a href="<?= BASE_URL ?>/modules/orders/add.php" class="btn btn-primary">
+          <i class="ti ti-plus me-1"></i>سفارش جدید
+        </a>
+      </div>
     <?php endif; ?>
   </div>
 </div>
 
 <?php if ($summary): ?>
-<!-- آمار خلاصه -->
-<div class="row row-cards mb-3">
-  <div class="col-sm-4">
-    <div class="card text-center">
-      <div class="card-body py-2">
-        <div class="text-muted small">تعداد سفارش</div>
-        <div class="h3 num mb-0"><?= number_format($summary['total_orders']) ?></div>
+  <!-- آمار خلاصه -->
+  <div class="row row-cards mb-3">
+    <div class="col-sm-4">
+      <div class="card text-center">
+        <div class="card-body py-2">
+          <div class="text-muted small">تعداد سفارش</div>
+          <div class="h3 num mb-0"><?= number_format($summary['total_orders']) ?></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card text-center">
+        <div class="card-body py-2">
+          <div class="text-muted small">کل فروش</div>
+          <div class="h3 num mb-0"><?= number_format($summary['total_amount']) ?></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card text-center">
+        <div class="card-body py-2">
+          <div class="text-muted small">کل دریافت</div>
+          <div class="h3 num mb-0"><?= number_format($summary['total_paid']) ?></div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-sm-4">
-    <div class="card text-center">
-      <div class="card-body py-2">
-        <div class="text-muted small">کل فروش</div>
-        <div class="h3 num mb-0"><?= number_format($summary['total_amount']) ?></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-sm-4">
-    <div class="card text-center">
-      <div class="card-body py-2">
-        <div class="text-muted small">کل دریافت</div>
-        <div class="h3 num mb-0"><?= number_format($summary['total_paid']) ?></div>
-      </div>
-    </div>
-  </div>
-</div>
 <?php endif; ?>
 
 <!-- فیلتر -->
@@ -94,8 +94,7 @@ require_once BASE_PATH . '/includes/header.php';
         <select name="work_month_id" class="form-select form-select-sm" onchange="this.form.submit()">
           <option value="">— انتخاب کنید —</option>
           <?php foreach ($workMonths as $wm): ?>
-            <option value="<?= $wm['work_month_id'] ?>"
-              <?= $workMonthId == $wm['work_month_id'] ? 'selected' : '' ?>>
+            <option value="<?= $wm['work_month_id'] ?>" <?= $workMonthId == $wm['work_month_id'] ? 'selected' : '' ?>>
               <?= e($wm['title']) ?>
             </option>
           <?php endforeach; ?>
@@ -131,8 +130,8 @@ require_once BASE_PATH . '/includes/header.php';
         <?php else: ?>
           <?php foreach ($orders as $o): ?>
             <?php
-              $balance = $o['final_amount'] - $o['total_paid'];
-              $st = $statusLabels[$o['status']] ?? ['label' => $o['status'], 'color' => 'secondary'];
+            $balance = $o['final_amount'] - $o['total_paid'];
+            $st = $statusLabels[$o['status']] ?? ['label' => $o['status'], 'color' => 'secondary'];
             ?>
             <tr>
               <td>#<?= $o['order_id'] ?></td>
@@ -143,8 +142,8 @@ require_once BASE_PATH . '/includes/header.php';
                 <?php endif; ?>
               </td>
               <td class="ltr"><?= toJalali($o['order_date']) ?></td>
-              <td class="text-center num"><?= number_format((float)$o['final_amount']) ?></td>
-              <td class="text-center num text-success"><?= number_format((float)$o['total_paid']) ?></td>
+              <td class="text-center num"><?= number_format((float) $o['final_amount']) ?></td>
+              <td class="text-center num text-success"><?= number_format((float) $o['total_paid']) ?></td>
               <td class="text-center num fw-bold <?= $balance > 0 ? 'text-danger' : 'text-success' ?>">
                 <?= number_format($balance) ?>
               </td>
@@ -153,9 +152,15 @@ require_once BASE_PATH . '/includes/header.php';
               </td>
               <td class="text-center">
                 <a href="<?= BASE_URL ?>/modules/orders/view.php?id=<?= $o['order_id'] ?>"
-                   class="btn btn-sm btn-icon btn-ghost-info" title="مشاهده">
+                  class="btn btn-sm btn-icon btn-ghost-info" title="مشاهده">
                   <i class="ti ti-eye"></i>
                 </a>
+                <?php if (hasPermission('orders.edit')): ?>
+                  <a href="<?= BASE_URL ?>/modules/orders/edit.php?id=<?= $o['order_id'] ?>"
+                    class="btn btn-sm btn-icon btn-ghost-primary" title="ویرایش">
+                    <i class="ti ti-edit"></i>
+                  </a>
+                <?php endif; ?>
               </td>
             </tr>
           <?php endforeach; ?>

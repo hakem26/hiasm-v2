@@ -111,26 +111,28 @@ function isActive(string $path): string
           </li>
         <?php endif; ?>
 
-        <!-- ── سفارش‌ها ──────────────────────────────────── -->
         <?php if (hasPermission('orders.view')): ?>
-          <!-- ── سفارش‌های دائم ─────────────────────────────── -->
-          <li class="nav-item">
-            <a class="nav-link <?= isActive('/modules/orders') ?>" href="<?= BASE_URL ?>/modules/orders/list.php">
-              <span class="nav-link-icon"><i class="ti ti-receipt"></i></span>
-              <span class="nav-link-title">سفارش‌های دائم</span>
+        <!-- ── سفارش‌ها ────────────────────────────────────── -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <?= isActive('/modules/orders') || isActive('/modules/temp_orders') ? 'active' : '' ?>"
+             href="#orders-menu" data-bs-toggle="collapse">
+            <span class="nav-link-icon"><i class="ti ti-receipt"></i></span>
+            <span class="nav-link-title">سفارش‌ها</span>
+          </a>
+          <div class="dropdown-menu collapse <?= isActive('/modules/orders') || isActive('/modules/temp_orders') ? 'show' : '' ?>"
+               id="orders-menu">
+            <a class="dropdown-item <?= isActive('/modules/orders') ?>"
+               href="<?= BASE_URL ?>/modules/orders/list.php">
+              <i class="ti ti-receipt me-2"></i>سفارش‌های دائم
             </a>
-          </li>
-        <?php endif; ?>
-
-        <?php if (hasPermission('orders.create')): ?>
-          <!-- ── سفارش‌های موقت ─────────────────────────────── -->
-          <li class="nav-item">
-            <a class="nav-link <?= isActive('/modules/temp_orders') ?>"
-              href="<?= BASE_URL ?>/modules/temp_orders/list.php">
-              <span class="nav-link-icon"><i class="ti ti-clock"></i></span>
-              <span class="nav-link-title">سفارش‌های موقت</span>
+            <?php if (hasPermission('orders.create')): ?>
+            <a class="dropdown-item <?= isActive('/modules/temp_orders') ?>"
+               href="<?= BASE_URL ?>/modules/temp_orders/list.php">
+              <i class="ti ti-clock me-2"></i>سفارش‌های موقت
             </a>
-          </li>
+            <?php endif; ?>
+          </div>
+        </li>
         <?php endif; ?>
 
         <?php if (hasPermission('reports.own')): ?>
