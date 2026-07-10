@@ -89,9 +89,10 @@ $cancelled = array_filter($orders, fn($o) => $o['is_cancelled']);
           </tr>
         <?php else: ?>
           <?php foreach ($orders as $o):
-            $isConv = !empty($o['is_converted']);
-            $isCan  = !empty($o['is_cancelled']);
-            $canAct = !$isConv && !$isCan && ($isAdmin || $o['created_by'] == $myId);
+            $isConv = (int)($o['is_converted'] ?? 0) === 1;
+            $isCan  = (int)($o['is_cancelled'] ?? 0) === 1;
+            // هر دو همکار جفت می‌تونن عملیات کنن — فعلاً سازنده + ادمین
+            $canAct = !$isConv && !$isCan && ($isAdmin || (int)$o['created_by'] === (int)$myId);
           ?>
             <tr class="<?= ($isConv || $isCan) ? 'opacity-75' : '' ?>">
               <td>#<?= $o['temp_order_id'] ?></td>
